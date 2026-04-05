@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import StatusTimeline from '@/components/StatusTimeline';
 import { formatINR } from '@/lib/format';
+import type { OrderStatus } from '@/lib/types';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
 
@@ -181,7 +182,7 @@ function TrackPageContent() {
               <h3 className="font-display text-lg font-semibold text-bark mb-5">
                 Status
               </h3>
-              <StatusTimeline currentStatus={order.status} />
+              <StatusTimeline currentStatus={order.status as OrderStatus} />
             </div>
 
             {/* Tracking number */}
