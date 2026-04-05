@@ -273,10 +273,19 @@ export default function AdminOrdersPage() {
                             </span>
                           </div>
                           {order.razorpayPaymentId && (
-                            <div className="flex justify-between font-ui text-xs">
-                              <span className="text-bark-light">Razorpay ID</span>
-                              <span className="font-mono text-bark-light">{order.razorpayPaymentId}</span>
-                            </div>
+                            <>
+                              <div className="flex justify-between font-ui text-xs">
+                                <span className="text-bark-light">Razorpay ID</span>
+                                <a
+                                  href={`https://dashboard.razorpay.com/app/payments/${order.razorpayPaymentId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-mono text-blue-600 hover:underline"
+                                >
+                                  {order.razorpayPaymentId}
+                                </a>
+                              </div>
+                            </>
                           )}
                         </div>
 
