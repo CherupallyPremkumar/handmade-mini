@@ -3,10 +3,23 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import StatusTimeline from '@/components/StatusTimeline';
-import { api } from '@/lib/api';
-import { sampleOrders } from '@/lib/sample-data';
-import type { Order } from '@/lib/types';
 import { formatINR } from '@/lib/format';
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
+
+interface TrackingItem {
+  productName: string;
+  quantity: number;
+}
+
+interface TrackingOrder {
+  orderNumber: string;
+  status: string;
+  trackingNumber: string | null;
+  items: TrackingItem[];
+  totalAmount: number;
+  createdTime: string;
+}
 
 export default function TrackPage() {
   return (
@@ -28,14 +41,14 @@ export default function TrackPage() {
 function TrackPageContent() {
   const searchParams = useSearchParams();
   const [orderNumber, setOrderNumber] = useState('');
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<TrackingOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
 
   async function handleTrack(num?: string) {
-    const trackNumber = num || orderNumber;
-    if (!trackNumber.trim()) {
+    const trackNumber = (num || orderNumber).trim();
+    if (!trackNumber) {
       setError('Please enter an order number');
       return;
     }
@@ -45,44 +58,28 @@ function TrackPageContent() {
     setSearched(true);
 
     try {
-      const res = await api.orders.track(trackNumber);
-      if (res.success && res.data) {
-        setOrder(res.data);
-      } else {
-        // Demo fallback: check sample data
-        const sample = sampleOrders.find(
-          (o) => o.orderNumber === trackNumber
-        );
-        if (sample) {
-          setOrder(sample);
-        } else {
-          setError('Order not found. Please check your order number.');
-          setOrder(null);
-        }
-      }
-    } catch {
-      // Demo fallback
-      const sample = sampleOrders.find(
-        (o) => o.orderNumber === trackNumber
-      );
-      if (sample) {
-        setOrder(sample);
+      const res = await fetch(`${API}/api/orders/${encodeURIComponent(trackNumber)}`);
+      if (res.ok) {
+        setOrder(await res.json());
       } else {
         setError('Order not found. Please check your order number.');
         setOrder(null);
       }
+    } catch {
+      setError('Could not connect to server. Please try again.');
+      setOrder(null);
     } finally {
       setLoading(false);
     }
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const prefilled = searchParams.get('order');
     if (prefilled) {
       setOrderNumber(prefilled);
       handleTrack(prefilled);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -93,7 +90,7 @@ function TrackPageContent() {
           Order Tracking
         </span>
         <h1 className="mt-2 font-display text-3xl sm:text-4xl font-bold text-bark">
-          Track Your Saree
+          Track Your Order
         </h1>
         <div className="gold-divider mt-3" />
       </div>
@@ -110,7 +107,7 @@ function TrackPageContent() {
               setError('');
             }}
             onKeyDown={(e) => e.key === 'Enter' && handleTrack()}
-            placeholder="e.g., PCH-20260401-001"
+            placeholder="e.g., DHN-1775407825012-TPJVAP"
             className={`input-field flex-1 ${error ? '!border-red-400' : ''}`}
           />
           <button
@@ -146,11 +143,6 @@ function TrackPageContent() {
         {error && (
           <p className="mt-2 font-ui text-xs text-red-500">{error}</p>
         )}
-
-        {/* Demo hint */}
-        <p className="mt-3 font-ui text-xs text-bark-light/50">
-          Try: PCH-20260401-001, PCH-20260402-002, or PCH-20260404-003
-        </p>
       </div>
 
       {/* Results */}
@@ -166,13 +158,20 @@ function TrackPageContent() {
                 <p className="font-display text-lg font-bold text-maroon">
                   {order.orderNumber}
                 </p>
+                <p className="font-ui text-xs text-bark-light mt-1">
+                  {new Date(order.createdTime).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </p>
               </div>
               <div className="text-right">
                 <p className="font-ui text-[10px] tracking-[0.14em] uppercase text-bark-light/60 mb-0.5">
                   Total
                 </p>
                 <p className="font-display text-lg font-bold text-bark">
-                  {formatINR(order.grandTotalInPaisa)}
+                  {formatINR(order.totalAmount)}
                 </p>
               </div>
             </div>
@@ -208,43 +207,15 @@ function TrackPageContent() {
                     key={i}
                     className="flex items-center justify-between py-2 border-b border-cream-deep/30 last:border-0"
                   >
-                    <div>
-                      <p className="font-ui text-sm font-medium text-bark">
-                        {item.sareeName}
-                      </p>
-                      <p className="font-ui text-xs text-bark-light">
-                        Qty: {item.quantity}
-                      </p>
-                    </div>
                     <p className="font-ui text-sm font-medium text-bark">
-                      {formatINR(item.priceInPaisa * item.quantity)}
+                      {item.productName}
+                    </p>
+                    <p className="font-ui text-xs text-bark-light">
+                      Qty: {item.quantity}
                     </p>
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Shipping address */}
-            <div className="mt-6 pt-6 border-t border-cream-deep/40">
-              <h3 className="font-display text-lg font-semibold text-bark mb-2">
-                Shipping Address
-              </h3>
-              <p className="font-ui text-sm text-bark-light leading-relaxed">
-                {order.address.name}
-                <br />
-                {order.address.addressLine1}
-                {order.address.addressLine2 && (
-                  <>
-                    <br />
-                    {order.address.addressLine2}
-                  </>
-                )}
-                <br />
-                {order.address.city}, {order.address.state}{' '}
-                {order.address.pincode}
-                <br />
-                {order.address.phone}
-              </p>
             </div>
           </div>
         </div>
