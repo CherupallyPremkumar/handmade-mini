@@ -2,9 +2,12 @@ package com.pochampally.controller;
 
 import com.pochampally.dto.OrderTrackingDto;
 import com.pochampally.entity.Order;
+import com.pochampally.entity.User;
+import com.pochampally.service.AuthService;
 import com.pochampally.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,6 +18,7 @@ import java.util.Map;
 public class OrderController {
 
     private final OrderService orderService;
+    private final AuthService authService;
 
     // --- Public: Track by order number (PII hidden) ---
 
@@ -22,6 +26,17 @@ public class OrderController {
     public ResponseEntity<OrderTrackingDto> trackOrder(@PathVariable String orderNumber) {
         Order order = orderService.getByOrderNumber(orderNumber);
         return ResponseEntity.ok(OrderTrackingDto.from(order));
+    }
+
+    // --- Authenticated: My orders ---
+
+    @GetMapping("/api/orders/my/list")
+    public ResponseEntity<List<OrderTrackingDto>> myOrders(Authentication authentication) {
+        String userId = authentication.getName();
+        User user = authService.getUserById(userId);
+        List<Order> orders = orderService.listByCustomerEmail(user.getEmail());
+        List<OrderTrackingDto> dtos = orders.stream().map(OrderTrackingDto::from).toList();
+        return ResponseEntity.ok(dtos);
     }
 
     // --- Admin endpoints ---

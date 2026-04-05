@@ -106,6 +106,17 @@ export default function Header() {
               >
                 Track Order
               </Link>
+              {mounted && isLoggedIn && (
+                <Link
+                  href="/my-orders"
+                  className={`
+                    font-ui text-sm tracking-wide transition-colors duration-200
+                    ${pathname === '/my-orders' ? 'text-maroon font-medium' : 'text-bark-light hover:text-maroon'}
+                  `}
+                >
+                  My Orders
+                </Link>
+              )}
               <Link
                 href="/nool"
                 className={`

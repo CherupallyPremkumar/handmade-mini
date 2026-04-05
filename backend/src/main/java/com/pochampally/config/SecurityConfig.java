@@ -45,6 +45,9 @@ public class SecurityConfig {
                         // Public: cart (session-based, no auth needed)
                         .requestMatchers("/api/cart/**").permitAll()
 
+                        // Authenticated: my orders
+                        .requestMatchers(HttpMethod.GET, "/api/orders/my/**").authenticated()
+
                         // Public: track order by order number
                         .requestMatchers(HttpMethod.GET, "/api/orders/track/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/orders/{orderNumber}").permitAll()
