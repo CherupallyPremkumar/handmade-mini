@@ -8,6 +8,16 @@ import type { OrderStatus } from '@/lib/types';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
 
+function getTrackingUrl(trackingNumber: string): string {
+  const tn = trackingNumber.toUpperCase();
+  if (tn.startsWith('DTDC')) return `https://www.dtdc.in/tracking.asp?strCnno=${trackingNumber}`;
+  if (tn.startsWith('EK') || tn.startsWith('EE') || tn.startsWith('EM')) return `https://www.indiapost.gov.in/_layouts/15/DOP.Portal.Tracking/TrackConsignment.aspx?cno=${trackingNumber}`;
+  if (tn.length === 11 && /^\d+$/.test(tn)) return `https://www.delhivery.com/track/package/${trackingNumber}`;
+  if (tn.startsWith('SF')) return `https://www.shadowfax.in/track/${trackingNumber}`;
+  if (/^\d{12}$/.test(tn)) return `https://www.bluedart.com/tracking?handler=tref&action=awbquery&awb=${trackingNumber}`;
+  return `https://www.17track.net/en/track#nums=${trackingNumber}`;
+}
+
 interface OrderItem {
   id: string;
   productId: string;
@@ -313,9 +323,17 @@ export default function AdminOrdersPage() {
                             <p className="font-ui text-xs text-bark-light/60 uppercase tracking-wider mb-0.5">
                               Tracking Number
                             </p>
-                            <p className="font-ui text-sm font-semibold text-bark">
+                            <a
+                              href={getTrackingUrl(order.trackingNumber)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-ui text-sm font-semibold text-blue-600 hover:underline flex items-center gap-1.5"
+                            >
                               {order.trackingNumber}
-                            </p>
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
                           </div>
                         )}
 
