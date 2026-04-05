@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 @Entity
-@Table(name = "orders", schema = "pochampally", indexes = {
+@Table(name = "orders", schema = "homebase_db", indexes = {
         @Index(name = "idx_orders_order_number", columnList = "order_number", unique = true),
         @Index(name = "idx_orders_customer_email", columnList = "customer_email"),
         @Index(name = "idx_orders_status", columnList = "status"),

@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pochampally-postgres
+    environment:
+      POSTGRES_DB: pochampally_db
+      POSTGRES_USER: pochampally
+      POSTGRES_PASSWORD: pochampally_secret
+    ports:
+      - "5433:5432"
+    volumes:
+      - pochampally_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pochampally -d pochampally_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: pochampally-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8080
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8280:8080"
+    volumes:
+      - ./keycloak/realms:/opt/keycloak/data/import
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pochampally_pgdata:

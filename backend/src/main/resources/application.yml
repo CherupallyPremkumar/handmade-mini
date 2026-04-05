@@ -3,9 +3,9 @@ server:
 
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/pochampally_db}
-    username: ${DB_USERNAME:pochampally}
-    password: ${DB_PASSWORD:pochampally_secret}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/homebase_db_db}
+    username: ${DB_USERNAME:homebase_db}
+    password: ${DB_PASSWORD:homebase_db_secret}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
@@ -16,13 +16,13 @@ spring:
       ddl-auto: none
     properties:
       hibernate:
-        default_schema: pochampally
+        default_schema: homebase_db
         format_sql: false
     open-in-view: false
 
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
-    default-schema: pochampally
+    default-schema: homebase_db
 
   servlet:
     multipart:
@@ -38,7 +38,7 @@ cloudflare:
     account-id: ${CF_ACCOUNT_ID:not-configured}
     access-key: ${CF_R2_ACCESS_KEY:not-configured}
     secret-key: ${CF_R2_SECRET_KEY:not-configured}
-    bucket: ${CF_R2_BUCKET:pochampally-images}
+    bucket: ${CF_R2_BUCKET:homebase_db-images}
     public-domain: ${CF_R2_PUBLIC_DOMAIN:localhost}
 
 # Razorpay configuration
@@ -54,5 +54,5 @@ app:
 # Logging
 logging:
   level:
-    com.pochampally: INFO
+    com.homebase_db: INFO
     org.hibernate.SQL: WARN

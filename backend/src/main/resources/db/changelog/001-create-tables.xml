@@ -5,12 +5,12 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                             http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="001-create-schema" author="pochampally">
-        <sql>CREATE SCHEMA IF NOT EXISTS pochampally;</sql>
+    <changeSet id="001-create-schema" author="homebase_db">
+        <sql>CREATE SCHEMA IF NOT EXISTS homebase_db;</sql>
     </changeSet>
 
-    <changeSet id="001-create-products-table" author="pochampally">
-        <createTable tableName="products" schemaName="pochampally">
+    <changeSet id="001-create-products-table" author="homebase_db">
+        <createTable tableName="products" schemaName="homebase_db">
             <column name="id" type="VARCHAR(255)">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
@@ -56,22 +56,22 @@
             <column name="version" type="BIGINT" defaultValueNumeric="0"/>
         </createTable>
 
-        <createIndex tableName="products" schemaName="pochampally" indexName="idx_products_category">
+        <createIndex tableName="products" schemaName="homebase_db" indexName="idx_products_category">
             <column name="category"/>
         </createIndex>
-        <createIndex tableName="products" schemaName="pochampally" indexName="idx_products_fabric">
+        <createIndex tableName="products" schemaName="homebase_db" indexName="idx_products_fabric">
             <column name="fabric"/>
         </createIndex>
-        <createIndex tableName="products" schemaName="pochampally" indexName="idx_products_weave_type">
+        <createIndex tableName="products" schemaName="homebase_db" indexName="idx_products_weave_type">
             <column name="weave_type"/>
         </createIndex>
-        <createIndex tableName="products" schemaName="pochampally" indexName="idx_products_is_active">
+        <createIndex tableName="products" schemaName="homebase_db" indexName="idx_products_is_active">
             <column name="is_active"/>
         </createIndex>
     </changeSet>
 
-    <changeSet id="001-create-cart-items-table" author="pochampally">
-        <createTable tableName="cart_items" schemaName="pochampally">
+    <changeSet id="001-create-cart-items-table" author="homebase_db">
+        <createTable tableName="cart_items" schemaName="homebase_db">
             <column name="id" type="VARCHAR(255)">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
@@ -89,13 +89,13 @@
             </column>
         </createTable>
 
-        <createIndex tableName="cart_items" schemaName="pochampally" indexName="idx_cart_items_session_id">
+        <createIndex tableName="cart_items" schemaName="homebase_db" indexName="idx_cart_items_session_id">
             <column name="session_id"/>
         </createIndex>
     </changeSet>
 
-    <changeSet id="001-create-orders-table" author="pochampally">
-        <createTable tableName="orders" schemaName="pochampally">
+    <changeSet id="001-create-orders-table" author="homebase_db">
+        <createTable tableName="orders" schemaName="homebase_db">
             <column name="id" type="VARCHAR(255)">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
@@ -139,25 +139,25 @@
             <column name="version" type="BIGINT" defaultValueNumeric="0"/>
         </createTable>
 
-        <createIndex tableName="orders" schemaName="pochampally" indexName="idx_orders_order_number" unique="true">
+        <createIndex tableName="orders" schemaName="homebase_db" indexName="idx_orders_order_number" unique="true">
             <column name="order_number"/>
         </createIndex>
-        <createIndex tableName="orders" schemaName="pochampally" indexName="idx_orders_customer_email">
+        <createIndex tableName="orders" schemaName="homebase_db" indexName="idx_orders_customer_email">
             <column name="customer_email"/>
         </createIndex>
-        <createIndex tableName="orders" schemaName="pochampally" indexName="idx_orders_status">
+        <createIndex tableName="orders" schemaName="homebase_db" indexName="idx_orders_status">
             <column name="status"/>
         </createIndex>
     </changeSet>
 
-    <changeSet id="001-create-order-items-table" author="pochampally">
-        <createTable tableName="order_items" schemaName="pochampally">
+    <changeSet id="001-create-order-items-table" author="homebase_db">
+        <createTable tableName="order_items" schemaName="homebase_db">
             <column name="id" type="VARCHAR(255)">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
             <column name="order_id" type="VARCHAR(255)">
                 <constraints nullable="false" foreignKeyName="fk_order_items_order"
-                             references="pochampally.orders(id)"/>
+                             references="homebase_db.orders(id)"/>
             </column>
             <column name="product_id" type="VARCHAR(255)">
                 <constraints nullable="false"/>
@@ -176,7 +176,7 @@
             </column>
         </createTable>
 
-        <createIndex tableName="order_items" schemaName="pochampally" indexName="idx_order_items_order_id">
+        <createIndex tableName="order_items" schemaName="homebase_db" indexName="idx_order_items_order_id">
             <column name="order_id"/>
         </createIndex>
     </changeSet>

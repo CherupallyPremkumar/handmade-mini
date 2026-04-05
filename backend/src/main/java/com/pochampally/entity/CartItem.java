@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "cart_items", schema = "pochampally", indexes = {
+@Table(name = "cart_items", schema = "homebase_db", indexes = {
         @Index(name = "idx_cart_items_session_id", columnList = "session_id")
 })
 @Getter

@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "users", schema = "pochampally")
+@Table(name = "users", schema = "homebase_db")
 @Getter
 @Setter
 @NoArgsConstructor
