@@ -80,8 +80,11 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
                 "http://localhost:5173",
+                "https://dhanunjaiah.com",
+                "https://www.dhanunjaiah.com",
                 "https://dhanunjaiah.in",
-                "https://www.dhanunjaiah.in"
+                "https://www.dhanunjaiah.in",
+                "https://handmade-mini.pages.dev"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
