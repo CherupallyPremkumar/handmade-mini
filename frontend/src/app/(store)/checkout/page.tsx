@@ -176,7 +176,10 @@ export default function CheckoutPage() {
 
       const order = await res.json();
 
-      // 2. Open Razorpay
+      // 2. Clear cart immediately — order is created in backend
+      clearCart();
+
+      // 3. Open Razorpay
       const options = buildRazorpayOptions({
         orderId: order.razorpayOrderId,
         amountInPaisa: order.amount,
@@ -184,8 +187,8 @@ export default function CheckoutPage() {
         customerEmail: form.email,
         customerPhone: form.phone,
         onSuccess: async (response) => {
-          // 3. Verify payment
-          await fetch(`${API}/api/checkout/verify-payment`, {
+          // 4. Verify payment (fire and forget — webhook is the real verification)
+          fetch(`${API}/api/checkout/verify-payment`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({
@@ -195,14 +198,12 @@ export default function CheckoutPage() {
             }),
           });
 
-          clearCart();
           router.push(`/order-confirmation/${order.orderNumber}`);
         },
       });
 
       const opened = await openRazorpayModal(options);
       if (!opened) {
-        clearCart();
         router.push(`/order-confirmation/${order.orderNumber}`);
       }
     } catch (err) {

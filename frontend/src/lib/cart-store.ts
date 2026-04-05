@@ -4,7 +4,7 @@ import type { Saree, CartItem } from './types';
 
 const GST_RATE = 0.05;
 const FREE_SHIPPING_THRESHOLD = 99900; // 999 rupees in paisa
-const SHIPPING_COST = 7900; // 79 rupees in paisa
+const SHIPPING_COST = 9900; // 99 rupees in paisa
 
 interface CartState {
   items: CartItem[];
