@@ -124,7 +124,7 @@ export default function NoolPage() {
                 ref={(el) => { videoRefs.current[currentIndex] = el; }}
                 key={current.id}
                 src={current.videoUrl!}
-                poster={current.images?.[0] || undefined}
+                poster={current.images && current.images.length > 0 ? current.images[0] : undefined}
                 className="absolute inset-0 w-full h-full object-cover z-10"
                 loop
                 playsInline
