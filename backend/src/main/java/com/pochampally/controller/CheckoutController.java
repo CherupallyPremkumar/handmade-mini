@@ -151,7 +151,11 @@ public class CheckoutController {
      * Razorpay redirect callback — receives POST after payment on hosted checkout.
      * Verifies signature, marks order as paid, redirects to frontend order confirmation.
      */
-    @PostMapping("/payment-callback")
+    @PostMapping(value = "/payment-callback", consumes = {
+            org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            org.springframework.http.MediaType.APPLICATION_JSON_VALUE,
+            org.springframework.http.MediaType.ALL_VALUE
+    })
     public ResponseEntity<Void> paymentCallback(@RequestParam("razorpay_order_id") String razorpayOrderId,
                                                  @RequestParam("razorpay_payment_id") String razorpayPaymentId,
                                                  @RequestParam("razorpay_signature") String razorpaySignature) {
