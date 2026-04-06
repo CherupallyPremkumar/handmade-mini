@@ -12,7 +12,7 @@ Feature: Order Management
     When I GET the order by order number without auth
     Then the response status is 200
     And the tracking response has order number
-    And the tracking response has status "PLACED"
+    And the tracking response has status "PENDING_PAYMENT"
     And the tracking response hides customer PII
 
   Scenario: Track non-existent order returns 404
@@ -47,7 +47,7 @@ Feature: Order Management
     Then the response status is 200
     And the response JSON key "status" is "DELIVERED"
 
-  Scenario: Cannot skip PLACED to SHIPPED
+  Scenario: Cannot skip PENDING_PAYMENT to SHIPPED
     Given I am logged in as "skip@test.com" with password "Secret@123"
     And I have placed an order for "Order Saree" quantity 1
     And I am logged in as admin

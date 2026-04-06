@@ -102,6 +102,6 @@ public class Order {
     }
 
     public enum OrderStatus {
-        PLACED, PAID, SHIPPED, DELIVERED, CANCELLED
+        PENDING_PAYMENT, PLACED, PAID, SHIPPED, DELIVERED, CANCELLED
     }
 }

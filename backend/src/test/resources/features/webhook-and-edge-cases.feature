@@ -8,12 +8,14 @@ Feature: Razorpay Webhooks & Edge Cases
 
   # ─── Razorpay Webhook Signature Verification ───
 
-  Scenario: Valid webhook signature is accepted
+  Scenario: Valid webhook marks order PAID and decrements stock
     Given I am logged in as "wh1@test.com" with password "Secret@123"
+    And product "Webhook Saree" has stock 10
     And I have placed an order for "Webhook Saree" quantity 1
     When I send a Razorpay webhook "payment.captured" with valid signature
     Then the response status is 200
     And the order status is now "PAID"
+    And product "Webhook Saree" now has stock 9
 
   Scenario: Invalid webhook signature is rejected
     When I send a Razorpay webhook "payment.captured" with invalid signature
@@ -24,42 +26,32 @@ Feature: Razorpay Webhooks & Edge Cases
     When I send a Razorpay webhook "payment.captured" without signature
     Then the response status is 400
 
-  Scenario: payment.failed webhook marks order as failed
+  Scenario: payment.failed webhook cancels order
     Given I am logged in as "wh2@test.com" with password "Secret@123"
     And I have placed an order for "Webhook Saree" quantity 1
     When I send a Razorpay webhook "payment.failed" with valid signature
     Then the response status is 200
     And the order payment status is "failed"
+    And the order status is now "CANCELLED"
 
   # ─── Concurrent Stock Decrement ───
 
-  Scenario: Two simultaneous orders for last 2 items - first succeeds second fails
+  Scenario: Stock not decremented on order creation
     Given I am logged in as "race1@test.com" with password "Secret@123"
     And product "Webhook Saree" has stock 10
     When I create an order with auth for:
       | productName   | quantity |
       | Webhook Saree | 9        |
     Then the response status is 200
-    And product "Webhook Saree" now has stock 1
-    When I create an order with auth for:
-      | productName   | quantity |
-      | Webhook Saree | 2        |
-    Then the response status is 409
-    And the response error contains "Insufficient stock"
+    And product "Webhook Saree" now has stock 10
 
-  # ─── Optimistic Lock on Product Update ───
-
-  Scenario: Atomic stock decrement prevents negative stock
+  Scenario: Stock validation still rejects exceeding quantity
     Given I am logged in as "atomic@test.com" with password "Secret@123"
     When I create an order with auth for:
       | productName   | quantity |
-      | Webhook Saree | 10       |
-    Then the response status is 200
-    And product "Webhook Saree" now has stock 0
-    When I create an order with auth for:
-      | productName   | quantity |
-      | Webhook Saree | 1        |
+      | Webhook Saree | 11       |
     Then the response status is 409
+    And the response error contains "Insufficient stock"
 
   # ─── Order not linked to wrong Razorpay ID ───
 

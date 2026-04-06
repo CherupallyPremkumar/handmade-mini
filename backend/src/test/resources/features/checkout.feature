@@ -45,14 +45,14 @@ Feature: Checkout & Payment
     Then the response status is 200
     And the order has shipping cost of 9900 paisa
 
-  Scenario: Stock decremented after order
+  Scenario: Stock NOT decremented on order creation (only on payment)
     Given I am logged in as "b5@test.com" with password "Secret@123"
     And product "Checkout Silk" has stock 10
     When I create an order with auth for:
       | productName   | quantity |
       | Checkout Silk | 3        |
     Then the response status is 200
-    And product "Checkout Silk" now has stock 7
+    And product "Checkout Silk" now has stock 10
 
   Scenario: Order exceeding stock is rejected
     Given I am logged in as "b6@test.com" with password "Secret@123"

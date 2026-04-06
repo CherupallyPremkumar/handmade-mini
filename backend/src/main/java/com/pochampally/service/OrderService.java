@@ -3,10 +3,13 @@ package com.pochampally.service;
 import com.pochampally.entity.*;
 import com.pochampally.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -14,15 +17,22 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class OrderService {
 
     private final OrderRepository orderRepository;
     private final CartService cartService;
     private final ProductService productService;
 
-    private static final long FREE_SHIPPING_THRESHOLD = 99900L; // Rs 999 in paisa
-    private static final long SHIPPING_COST = 9900L; // Rs 99 in paisa
+    private static final long FREE_SHIPPING_THRESHOLD = 99900L;
+    private static final long SHIPPING_COST = 9900L;
+    private static final int PAYMENT_TIMEOUT_MINUTES = 30;
 
+    /**
+     * Step 1: Create order with PENDING_PAYMENT status.
+     * Stock is NOT decremented — only validated.
+     * Stock gets decremented only when payment is confirmed.
+     */
     @Transactional
     public Order createOrderFromItems(List<Map<String, Object>> items, String customerName,
                                       String customerPhone, String customerEmail, Map<String, String> shippingAddress) {
@@ -36,7 +46,7 @@ public class OrderService {
                 .customerPhone(customerPhone)
                 .customerEmail(customerEmail)
                 .shippingAddress(shippingAddress)
-                .status(Order.OrderStatus.PLACED)
+                .status(Order.OrderStatus.PENDING_PAYMENT)
                 .createdTime(Instant.now())
                 .build();
 
@@ -55,6 +65,8 @@ public class OrderService {
             }
 
             Product product = productService.getById(productId);
+
+            // Validate stock but don't decrement — decrement happens on payment confirmation
             if (product.getStock() < qty) {
                 throw new IllegalStateException("Insufficient stock for " + product.getName());
             }
@@ -72,9 +84,8 @@ public class OrderService {
                     .build();
             orderItem.setOrder(order);
             order.getItems().add(orderItem);
-
-            productService.decrementStock(product.getId(), qty);
         }
+
         long shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
         long totalAmount = subtotal + gstAmount + shippingCost;
 
@@ -100,7 +111,7 @@ public class OrderService {
                 .customerPhone(customerPhone)
                 .customerEmail(customerEmail)
                 .shippingAddress(shippingAddress)
-                .status(Order.OrderStatus.PLACED)
+                .status(Order.OrderStatus.PENDING_PAYMENT)
                 .createdTime(Instant.now())
                 .build();
 
@@ -128,6 +139,7 @@ public class OrderService {
 
             order.addItem(orderItem);
         }
+
         long shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
         long totalAmount = subtotal + gstAmount + shippingCost;
 
@@ -136,17 +148,76 @@ public class OrderService {
         order.setShippingCost(shippingCost);
         order.setTotalAmount(totalAmount);
 
-        Order savedOrder = orderRepository.save(order);
+        return orderRepository.save(order);
+    }
 
-        // Decrement stock for all items
-        for (CartItem cartItem : cartItems) {
-            productService.decrementStock(cartItem.getProductId(), cartItem.getQuantity());
+    /**
+     * Step 2: Payment confirmed — decrement stock atomically, change status to PAID.
+     * This is called from the Razorpay callback or webhook.
+     * Idempotent — if already PAID, returns existing order.
+     */
+    @Transactional
+    public Order markAsPaid(String razorpayOrderId, String razorpayPaymentId) {
+        Order order = getByRazorpayOrderId(razorpayOrderId);
+
+        // Idempotent: already paid, return as-is
+        if (order.getStatus() == Order.OrderStatus.PAID) {
+            return order;
         }
 
-        // Clear the cart after order creation
-        cartService.clearCart(sessionId);
+        // Only PENDING_PAYMENT or PLACED can transition to PAID
+        if (order.getStatus() != Order.OrderStatus.PENDING_PAYMENT &&
+            order.getStatus() != Order.OrderStatus.PLACED) {
+            throw new IllegalStateException("Cannot mark order " + order.getOrderNumber() +
+                    " as paid — current status: " + order.getStatus());
+        }
 
-        return savedOrder;
+        // Decrement stock for each item NOW
+        for (OrderItem item : order.getItems()) {
+            productService.decrementStock(item.getProductId(), item.getQuantity());
+        }
+
+        order.setRazorpayPaymentId(razorpayPaymentId);
+        order.setPaymentStatus("captured");
+        order.setStatus(Order.OrderStatus.PAID);
+
+        log.info("Order {} marked PAID. Stock decremented for {} items.",
+                order.getOrderNumber(), order.getItems().size());
+
+        return orderRepository.save(order);
+    }
+
+    @Transactional
+    public Order markPaymentFailed(String razorpayOrderId) {
+        Order order = getByRazorpayOrderId(razorpayOrderId);
+        order.setPaymentStatus("failed");
+        order.setStatus(Order.OrderStatus.CANCELLED);
+        log.info("Order {} payment failed, cancelled.", order.getOrderNumber());
+        return orderRepository.save(order);
+    }
+
+    /**
+     * Scheduled: Cancel expired PENDING_PAYMENT orders (>30 min).
+     * No stock to release since stock wasn't decremented.
+     */
+    @Scheduled(fixedRate = 5 * 60 * 1000) // every 5 minutes
+    @Transactional
+    public void cancelExpiredOrders() {
+        Instant cutoff = Instant.now().minus(PAYMENT_TIMEOUT_MINUTES, ChronoUnit.MINUTES);
+        List<Order> expired = orderRepository.findByStatusAndCreatedTimeBefore(
+                Order.OrderStatus.PENDING_PAYMENT, cutoff);
+
+        for (Order order : expired) {
+            order.setStatus(Order.OrderStatus.CANCELLED);
+            order.setPaymentStatus("expired");
+            orderRepository.save(order);
+            log.info("Expired order {} cancelled (no payment after {} min)",
+                    order.getOrderNumber(), PAYMENT_TIMEOUT_MINUTES);
+        }
+
+        if (!expired.isEmpty()) {
+            log.info("Cancelled {} expired orders", expired.size());
+        }
     }
 
     public Order getByOrderNumber(String orderNumber) {
@@ -187,22 +258,6 @@ public class OrderService {
     }
 
     @Transactional
-    public Order markAsPaid(String razorpayOrderId, String razorpayPaymentId) {
-        Order order = getByRazorpayOrderId(razorpayOrderId);
-        order.setRazorpayPaymentId(razorpayPaymentId);
-        order.setPaymentStatus("captured");
-        order.setStatus(Order.OrderStatus.PAID);
-        return orderRepository.save(order);
-    }
-
-    @Transactional
-    public Order markPaymentFailed(String razorpayOrderId) {
-        Order order = getByRazorpayOrderId(razorpayOrderId);
-        order.setPaymentStatus("failed");
-        return orderRepository.save(order);
-    }
-
-    @Transactional
     public Order setRazorpayOrderId(String orderId, String razorpayOrderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
@@ -212,6 +267,7 @@ public class OrderService {
 
     private void validateStatusTransition(Order.OrderStatus current, Order.OrderStatus target) {
         boolean valid = switch (current) {
+            case PENDING_PAYMENT -> target == Order.OrderStatus.PAID || target == Order.OrderStatus.CANCELLED;
             case PLACED -> target == Order.OrderStatus.PAID || target == Order.OrderStatus.CANCELLED;
             case PAID -> target == Order.OrderStatus.SHIPPED || target == Order.OrderStatus.CANCELLED;
             case SHIPPED -> target == Order.OrderStatus.DELIVERED;

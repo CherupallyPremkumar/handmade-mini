@@ -15,4 +15,6 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     Optional<Order> findByOrderNumber(String orderNumber);
 
     Optional<Order> findByRazorpayOrderId(String razorpayOrderId);
+
+    List<Order> findByStatusAndCreatedTimeBefore(Order.OrderStatus status, java.time.Instant cutoff);
 }

@@ -54,6 +54,7 @@ interface AdminOrder {
 }
 
 const STATUS_COLORS: Record<string, string> = {
+  PENDING_PAYMENT: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
   PLACED: 'bg-amber-50 text-amber-700 border border-amber-200',
   PAID: 'bg-green-50 text-green-700 border border-green-200',
   SHIPPED: 'bg-blue-50 text-blue-700 border border-blue-200',
@@ -62,6 +63,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const NEXT_STATUS: Record<string, string[]> = {
+  PENDING_PAYMENT: ['PAID', 'CANCELLED'],
   PLACED: ['PAID', 'CANCELLED'],
   PAID: ['SHIPPED', 'CANCELLED'],
   SHIPPED: ['DELIVERED'],
