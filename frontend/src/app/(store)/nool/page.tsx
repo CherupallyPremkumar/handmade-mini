@@ -114,22 +114,26 @@ export default function NoolPage() {
       </div>
 
       {/* Main content: Desktop = video left + details right, Mobile = video only */}
-      <div className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-5xl mx-auto flex gap-8">
+      <div className="flex-1 flex items-center justify-center px-4 pb-4">
+        <div className="w-full max-w-5xl mx-auto md:flex md:gap-8 md:items-center">
 
           {/* LEFT: Video player */}
-          <div className="w-full md:w-auto md:shrink-0">
+          <div className="w-full md:w-[360px] md:shrink-0 mx-auto md:mx-0">
             <div className="relative w-full max-w-sm mx-auto aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl">
               <video
                 ref={(el) => { videoRefs.current[currentIndex] = el; }}
                 key={current.id}
                 src={current.videoUrl!}
-                className="absolute inset-0 w-full h-full object-cover"
+                poster={current.images?.[0] || undefined}
+                className="absolute inset-0 w-full h-full object-cover z-10"
                 loop
                 playsInline
                 muted={muted}
                 autoPlay
               />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              </div>
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
 
