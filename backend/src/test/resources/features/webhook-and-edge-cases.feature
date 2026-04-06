@@ -76,3 +76,21 @@ Feature: Razorpay Webhooks & Edge Cases
       {"razorpayOrderId":"order_fake","razorpayPaymentId":"pay_fake","razorpaySignature":"bad"}
       """
     Then the response status is 400
+
+  Scenario: Webhook payment.captured is idempotent
+    Given I am logged in as "wh3@test.com" with password "Secret@123"
+    And I have placed an order for "Webhook Saree" quantity 1
+    When I send a Razorpay webhook "payment.captured" with valid signature
+    Then the response status is 200
+    And the order status is now "PAID"
+    When I send a Razorpay webhook "payment.captured" with valid signature
+    Then the response status is 200
+    And the order status is now "PAID"
+
+  Scenario: Cannot pay for already cancelled order
+    Given I am logged in as "cancelled@test.com" with password "Secret@123"
+    And I have placed an order for "Webhook Saree" quantity 1
+    And I am logged in as admin
+    And I update order status to "CANCELLED"
+    When I send a Razorpay webhook "payment.captured" with valid signature
+    Then the response status is 200

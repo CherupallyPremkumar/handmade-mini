@@ -124,3 +124,23 @@ Feature: Checkout & Payment
       {"customerName":"X","customerPhone":"+91999","customerEmail":"x@x.com","shippingAddress":{"line1":"x","city":"y","state":"z","pincode":"111111"},"items":[{"productId":"fake","quantity":0}]}
       """
     Then the response status is 404
+
+  Scenario: Order created with PENDING_PAYMENT status
+    Given I am logged in as "b12@test.com" with password "Secret@123"
+    When I create an order with auth for:
+      | productName   | quantity |
+      | Checkout Silk | 1        |
+    Then the response status is 200
+    And the order status in DB is "PENDING_PAYMENT"
+
+  Scenario: Multiple orders for same product allowed (stock not locked)
+    Given I am logged in as "b13@test.com" with password "Secret@123"
+    When I create an order with auth for:
+      | productName   | quantity |
+      | Checkout Silk | 5        |
+    Then the response status is 200
+    When I create an order with auth for:
+      | productName   | quantity |
+      | Checkout Silk | 5        |
+    Then the response status is 200
+    And product "Checkout Silk" now has stock 10

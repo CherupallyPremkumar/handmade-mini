@@ -84,3 +84,16 @@ Feature: Shopping Cart
   Scenario: Remove non-existent cart item returns 404
     When I DELETE "/api/cart/sess-x/ghost-item-id"
     Then the response status is 404
+
+  Scenario: Get cart for non-existent session returns empty
+    When I GET "/api/cart/does-not-exist-session"
+    Then the response status is 200
+    And the response is an empty list
+
+  Scenario: Add same product to different sessions keeps separate
+    When I add product "Silk Saree" to cart "sess-a" with quantity 1
+    And I add product "Silk Saree" to cart "sess-b" with quantity 2
+    And I GET "/api/cart/sess-a"
+    Then the response is a list of 1 items
+    When I GET "/api/cart/sess-b"
+    Then the response is a list of 1 items

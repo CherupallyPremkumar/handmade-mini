@@ -90,3 +90,31 @@ Feature: Authentication
       {"name":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","email":"long@test.com","password":"Secret@123"}
       """
     Then the response status is 400
+
+  Scenario: Register with missing email field
+    When I POST "/api/auth/register" with body:
+      """
+      {"name":"Test","password":"Secret@123"}
+      """
+    Then the response status is 400
+
+  Scenario: Register with missing password field
+    When I POST "/api/auth/register" with body:
+      """
+      {"name":"Test","email":"nopw@test.com"}
+      """
+    Then the response status is 400
+
+  Scenario: Login with missing email
+    When I POST "/api/auth/login" with body:
+      """
+      {"password":"Secret@123"}
+      """
+    Then the response status is 400
+
+  Scenario: Login with missing password
+    When I POST "/api/auth/login" with body:
+      """
+      {"email":"x@test.com"}
+      """
+    Then the response status is 400

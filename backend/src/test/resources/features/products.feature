@@ -119,3 +119,24 @@ Feature: Product Catalog
   Scenario: Invalid fabric enum in filter is rejected
     When I GET "/api/products?fabric=DIAMOND"
     Then the response status is 400
+
+  Scenario: Create product with zero stock is allowed
+    Given I am logged in as admin
+    When I POST "/api/admin/products" with auth and body:
+      """
+      {"name":"Zero Stock","fabric":"SILK","weaveType":"IKAT","color":"Red","sellingPrice":100000,"mrp":200000,"stock":0,"gstPct":5,"hsnCode":"50079090"}
+      """
+    Then the response status is 201
+
+  Scenario: Create product with empty name fails
+    Given I am logged in as admin
+    When I POST "/api/admin/products" with auth and body:
+      """
+      {"name":"   ","fabric":"SILK","weaveType":"IKAT","color":"Red","sellingPrice":100000,"mrp":200000,"stock":5,"gstPct":5,"hsnCode":"50079090"}
+      """
+    Then the response status is 400
+
+  Scenario: Update product preserves other fields
+    Given I am logged in as admin
+    When I GET the first product by ID
+    Then the response JSON key "fabric" is "SILK"

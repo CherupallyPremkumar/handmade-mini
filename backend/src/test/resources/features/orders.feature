@@ -124,3 +124,21 @@ Feature: Order Management
       {"status":"EXPLODED"}
       """
     Then the response status is 400
+
+  Scenario: Cannot cancel DELIVERED order
+    Given I am logged in as "nocancel@test.com" with password "Secret@123"
+    And I have placed an order for "Order Saree" quantity 1
+    And I am logged in as admin
+    And I update order status to "PAID"
+    And I update order status to "SHIPPED" with tracking "T99"
+    And I update order status to "DELIVERED"
+    When I update order status to "CANCELLED"
+    Then the response status is 409
+
+  Scenario: Double payment is idempotent
+    Given I am logged in as "idempotent@test.com" with password "Secret@123"
+    And I have placed an order for "Order Saree" quantity 1
+    And I am logged in as admin
+    And I update order status to "PAID"
+    When I update order status to "PAID"
+    Then the response status is 409

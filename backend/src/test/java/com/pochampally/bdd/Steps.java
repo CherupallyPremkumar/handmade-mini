@@ -354,6 +354,12 @@ public class Steps {
     //  PER-PRODUCT GST
     // ═══════════════════════════════════════════════
 
+    @Then("the order status in DB is {string}")
+    public void orderStatusInDb(String status) {
+        var order = w.orders.findById(w.savedOrderId).orElseThrow();
+        assertThat(order.getStatus().name()).isEqualTo(status);
+    }
+
     @Then("the order GST is {long} paisa for subtotal {long} paisa")
     public void orderGst(long expectedGst, long expectedSubtotal) throws Exception {
         // Silk 5%: 100000 * 5% = 5000
