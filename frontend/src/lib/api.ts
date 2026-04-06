@@ -9,7 +9,6 @@ import type {
   AdminStats,
   OrderStatus,
 } from './types';
-import type { Nool } from './nool-data';
 import { authHeaders } from './auth-store';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
@@ -98,6 +97,7 @@ function mapProductToSaree(p: any): Saree {
     videoUrl: p.videoUrl,
     stock: p.stock ?? 0,
     active: p.isActive ?? p.active ?? true,
+    gstPct: p.gstPct ?? 5,
     createdAt: p.createdTime ?? p.createdAt ?? new Date().toISOString(),
   };
 }
@@ -261,63 +261,6 @@ export const api = {
   /* ─── Admin ─── */
   admin: {
     stats: () => authRequest<AdminStats>('/api/admin/stats'),
-  },
-
-  /* ─── Nool ─── */
-  nool: {
-    list: (page = 0, size = 10) =>
-      request<PaginatedResponse<Nool>>(
-        `/api/nool?page=${page}&size=${size}`
-      ),
-
-    upload: async (formData: FormData): Promise<GenericResponse<Nool>> => {
-      const auth = authHeaders();
-
-      try {
-        const res = await fetch(`${API}/api/admin/nool`, {
-          method: 'POST',
-          headers: { ...auth },
-          body: formData,
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => null);
-          return {
-            success: false,
-            data: null as unknown as Nool,
-            errors: [
-              {
-                errorNum: res.status,
-                subErrorNum: 0,
-                description: err?.error || 'Upload failed',
-              },
-            ],
-          };
-        }
-        const data = await res.json();
-        return { success: true, data };
-      } catch {
-        return {
-          success: false,
-          data: null as unknown as Nool,
-          errors: [
-            {
-              errorNum: 0,
-              subErrorNum: 0,
-              description: 'Network error during upload',
-            },
-          ],
-        };
-      }
-    },
-
-    update: (id: string, data: Partial<Nool>) =>
-      authRequest<Nool>(`/api/admin/nool/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      }),
-
-    delete: (id: string) =>
-      authRequest<void>(`/api/admin/nool/${id}`, { method: 'DELETE' }),
   },
 
   /* ─── Images ─── */

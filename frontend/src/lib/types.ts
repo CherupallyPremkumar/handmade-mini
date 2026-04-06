@@ -6,8 +6,8 @@ export interface Saree {
   description: string;
   priceInPaisa: number;
   mrpInPaisa: number;
-  fabric: 'SILK' | 'COTTON' | 'SILK_COTTON';
-  weave: 'IKAT' | 'TELIA_RUMAL' | 'MERCERIZED';
+  fabric: string;
+  weave: string;
   color: string;
   lengthInMeters: number;
   blousePieceIncluded: boolean;
@@ -15,6 +15,7 @@ export interface Saree {
   videoUrl?: string;
   stock: number;
   active: boolean;
+  gstPct: number;
   createdAt: string;
 }
 
@@ -38,27 +39,33 @@ export interface Order {
   id: string;
   orderNumber: string;
   items: OrderItem[];
-  address: OrderAddress;
+  shippingAddress: Record<string, string>;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
   status: OrderStatus;
-  totalInPaisa: number;
-  gstInPaisa: number;
-  shippingInPaisa: number;
-  grandTotalInPaisa: number;
+  subtotal: number;
+  gstAmount: number;
+  shippingCost: number;
+  totalAmount: number;
   trackingNumber?: string;
+  paymentStatus?: string;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdTime: string;
 }
 
 export interface OrderItem {
-  sareeId: string;
-  sareeName: string;
-  priceInPaisa: number;
+  id: string;
+  productId: string;
+  productName: string;
+  unitPrice: number;
+  totalPrice: number;
   quantity: number;
 }
 
 export type OrderStatus =
+  | 'PENDING_PAYMENT'
   | 'PLACED'
   | 'PAID'
   | 'PROCESSING'

@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Saree, CartItem } from './types';
 
-const GST_RATE = 0.05;
 const FREE_SHIPPING_THRESHOLD = 99900; // 999 rupees in paisa
 const SHIPPING_COST = 9900; // 99 rupees in paisa
 
@@ -73,7 +72,13 @@ export const useCartStore = create<CartState>()(
           0
         ),
 
-      gstAmount: () => Math.round(get().subtotal() * GST_RATE),
+      /** Per-product GST calculation — matches backend exactly */
+      gstAmount: () =>
+        get().items.reduce((sum, item) => {
+          const itemTotal = item.saree.priceInPaisa * item.quantity;
+          const gstPct = item.saree.gstPct ?? 5;
+          return sum + Math.round((itemTotal * gstPct) / 100);
+        }, 0),
 
       shippingCost: () =>
         get().subtotal() >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST,
@@ -82,7 +87,7 @@ export const useCartStore = create<CartState>()(
         get().subtotal() + get().gstAmount() + get().shippingCost(),
     }),
     {
-      name: 'pochampally-cart',
+      name: 'dhanunjaiah-cart',
     }
   )
 );

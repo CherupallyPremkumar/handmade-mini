@@ -34,27 +34,30 @@ export function formatFabric(fabric: string): string {
     SILK: 'Pure Silk',
     COTTON: 'Handloom Cotton',
     SILK_COTTON: 'Silk Cotton Blend',
+    LINEN: 'Linen',
+    POLYESTER: 'Polyester',
+    GEORGETTE: 'Georgette',
+    CHIFFON: 'Chiffon',
   };
   return map[fabric] || fabric;
 }
 
-/**
- * Format weave enum to display string.
- */
 export function formatWeave(weave: string): string {
   const map: Record<string, string> = {
     IKAT: 'Ikat',
     TELIA_RUMAL: 'Telia Rumal',
     MERCERIZED: 'Mercerized',
+    HANDLOOM: 'Handloom',
+    POWERLOOM: 'Powerloom',
+    JACQUARD: 'Jacquard',
+    PLAIN: 'Plain',
   };
   return map[weave] || weave;
 }
 
-/**
- * Format order status for display.
- */
 export function formatStatus(status: string): string {
   const map: Record<string, string> = {
+    PENDING_PAYMENT: 'Awaiting Payment',
     PLACED: 'Order Placed',
     PAID: 'Payment Confirmed',
     PROCESSING: 'Processing',
@@ -65,11 +68,9 @@ export function formatStatus(status: string): string {
   return map[status] || status;
 }
 
-/**
- * Get status color classes.
- */
 export function statusColor(status: string): string {
   const map: Record<string, string> = {
+    PENDING_PAYMENT: 'bg-yellow-100 text-yellow-800',
     PLACED: 'bg-amber-100 text-amber-800',
     PAID: 'bg-blue-100 text-blue-800',
     PROCESSING: 'bg-indigo-100 text-indigo-800',

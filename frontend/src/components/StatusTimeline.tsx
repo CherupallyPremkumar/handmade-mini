@@ -8,9 +8,8 @@ interface StatusTimelineProps {
 }
 
 const TIMELINE_STEPS: OrderStatus[] = [
-  'PLACED',
+  'PENDING_PAYMENT',
   'PAID',
-  'PROCESSING',
   'SHIPPED',
   'DELIVERED',
 ];
