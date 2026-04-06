@@ -176,10 +176,7 @@ export default function CheckoutPage() {
 
       const order = await res.json();
 
-      // 2. Clear cart immediately — order is created in backend
-      clearCart();
-
-      // 3. Redirect to Razorpay hosted checkout page
+      // 2. Redirect to Razorpay hosted checkout page — cart clears on confirmation page
       const key = process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_test_placeholder';
       const callback = `${API}/api/checkout/payment-callback`;
       const phone = form.phone.startsWith('+91') ? form.phone : `+91${form.phone}`;

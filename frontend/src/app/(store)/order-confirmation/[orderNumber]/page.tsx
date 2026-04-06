@@ -1,12 +1,20 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { useEffect } from 'react';
 import Link from 'next/link';
+import { useCartStore } from '@/lib/cart-store';
 
 export default function OrderConfirmationPage() {
   const params = useParams();
   const orderNumber =
     typeof params.orderNumber === 'string' ? params.orderNumber : '';
+  const clearCart = useCartStore((s) => s.clearCart);
+
+  // Clear cart when order is confirmed
+  useEffect(() => {
+    clearCart();
+  }, [clearCart]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
