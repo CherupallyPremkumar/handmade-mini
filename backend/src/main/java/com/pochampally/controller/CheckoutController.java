@@ -126,4 +126,26 @@ public class CheckoutController {
                 "orderNumber", order.getOrderNumber(),
                 "status", order.getStatus().name()));
     }
+
+    /**
+     * Razorpay redirect callback — receives POST after payment on hosted checkout.
+     * Verifies signature, marks order as paid, redirects to frontend order confirmation.
+     */
+    @PostMapping("/payment-callback")
+    public ResponseEntity<Void> paymentCallback(@RequestParam("razorpay_order_id") String razorpayOrderId,
+                                                 @RequestParam("razorpay_payment_id") String razorpayPaymentId,
+                                                 @RequestParam("razorpay_signature") String razorpaySignature) {
+
+        boolean valid = razorpayService.verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+
+        if (valid) {
+            Order order = orderService.markAsPaid(razorpayOrderId, razorpayPaymentId);
+            log.info("Payment callback: Order {} marked PAID", order.getOrderNumber());
+            String frontendUrl = "https://dhanunjaiah.com/order-confirmation/" + order.getOrderNumber();
+            return ResponseEntity.status(302).header("Location", frontendUrl).build();
+        } else {
+            log.warn("Payment callback: Invalid signature for {}", razorpayOrderId);
+            return ResponseEntity.status(302).header("Location", "https://dhanunjaiah.com/checkout?error=payment_failed").build();
+        }
+    }
 }

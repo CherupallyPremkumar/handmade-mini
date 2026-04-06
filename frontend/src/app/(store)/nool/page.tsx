@@ -101,49 +101,27 @@ export default function NoolPage() {
 
   return (
     <div className="h-screen bg-bark flex flex-col overflow-hidden">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2 shrink-0">
-        <Link href="/" className="font-ui text-sm text-cream/60 hover:text-cream flex items-center gap-1.5">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          <span className="hidden sm:inline">Back</span>
-        </Link>
-        <h1 className="font-display text-lg font-bold text-cream">Nool</h1>
-        <button onClick={() => setMuted(!muted)} className="font-ui text-xs text-cream/60 hover:text-cream flex items-center gap-1">
-          {muted ? (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-            </svg>
-          ) : (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-            </svg>
-          )}
-        </button>
-      </div>
-
       {/* Main: Desktop = scrollable video left + sticky details right */}
       <div className="flex-1 flex overflow-hidden">
-        {/* LEFT: Vertical scroll video feed */}
-        <div
-          ref={scrollRef}
-          className="flex-1 md:flex-none md:w-[400px] lg:w-[440px] overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
-          style={{ scrollbarWidth: 'none' }}
-        >
+        {/* LEFT: Vertical scroll reel feed — 9:16 ratio */}
+        <div className="flex-1 md:w-[65%] md:flex-none flex items-center justify-center bg-black">
+          <div
+            ref={scrollRef}
+            className="h-full aspect-[9/16] max-h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
+            style={{ scrollbarWidth: 'none' }}
+          >
           {products.map((p, i) => (
             <div
               key={p.id}
               data-index={i}
-              className="h-full snap-start snap-always relative flex items-center justify-center bg-black"
+              className="h-full snap-start snap-always relative bg-black"
             >
               {/* Video */}
               <video
                 ref={(el) => { videoRefs.current[i] = el; }}
                 src={p.videoUrl!}
                 poster={p.images && p.images.length > 0 ? p.images[0] : undefined}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover z-[5]"
                 loop
                 playsInline
                 muted={muted}
@@ -158,14 +136,23 @@ export default function NoolPage() {
               {/* Gradient */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 pointer-events-none z-10" />
 
-              {/* Active indicator */}
-              {i === activeIndex && (
-                <div className="absolute top-3 left-3 right-3 z-20 flex gap-1">
-                  {products.map((_, j) => (
-                    <div key={j} className={`h-0.5 flex-1 rounded-full ${j === i ? 'bg-white' : 'bg-white/20'}`} />
-                  ))}
-                </div>
-              )}
+              {/* Mute button */}
+              <button
+                onClick={() => setMuted(!muted)}
+                className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-black/40 flex items-center justify-center text-white/80 hover:bg-black/60"
+              >
+                {muted ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                )}
+              </button>
+
 
               {/* Mobile: product overlay */}
               <div className="md:hidden absolute bottom-0 left-0 right-0 p-4 z-20">
@@ -200,11 +187,12 @@ export default function NoolPage() {
               </div>
             </div>
           ))}
+          </div>
         </div>
 
         {/* RIGHT: Product details (desktop only) */}
         {current && (
-          <div className="hidden md:flex flex-1 items-center justify-center px-8 overflow-y-auto">
+          <div className="hidden md:flex md:w-[35%] items-center justify-center px-6 overflow-y-auto overscroll-contain bg-bark" onWheel={(e) => e.stopPropagation()}>
             <div className="max-w-md w-full py-8">
               {/* Images */}
               {current.images && current.images.length > 0 && (

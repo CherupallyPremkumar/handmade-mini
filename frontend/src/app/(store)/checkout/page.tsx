@@ -179,33 +179,38 @@ export default function CheckoutPage() {
       // 2. Clear cart immediately — order is created in backend
       clearCart();
 
-      // 3. Open Razorpay
-      const options = buildRazorpayOptions({
-        orderId: order.razorpayOrderId,
-        amountInPaisa: order.amount,
-        customerName: form.name,
-        customerEmail: form.email,
-        customerPhone: form.phone,
-        onSuccess: async (response) => {
-          // 4. Verify payment (fire and forget — webhook is the real verification)
-          fetch(`${API}/api/checkout/verify-payment`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-            body: JSON.stringify({
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            }),
-          });
+      // 3. Redirect to Razorpay hosted checkout page
+      const key = process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_test_placeholder';
+      const callback = `${API}/api/checkout/payment-callback`;
+      const phone = form.phone.startsWith('+91') ? form.phone : `+91${form.phone}`;
 
-          router.push(`/order-confirmation/${order.orderNumber}`);
-        },
-      });
+      // Build Razorpay redirect form and submit
+      const formEl = document.createElement('form');
+      formEl.method = 'POST';
+      formEl.action = 'https://api.razorpay.com/v1/checkout/embedded';
 
-      const opened = await openRazorpayModal(options);
-      if (!opened) {
-        router.push(`/order-confirmation/${order.orderNumber}`);
+      const fields: Record<string, string> = {
+        key_id: key,
+        order_id: order.razorpayOrderId,
+        name: 'Dhanunjaiah Handlooms',
+        description: 'Authentic Handwoven Sarees',
+        'prefill[name]': form.name,
+        'prefill[email]': form.email,
+        'prefill[contact]': phone,
+        callback_url: callback,
+        cancel_url: window.location.href,
+      };
+
+      for (const [k, v] of Object.entries(fields)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = k;
+        input.value = v;
+        formEl.appendChild(input);
       }
+
+      document.body.appendChild(formEl);
+      formEl.submit();
     } catch (err) {
       setPaymentError(
         err instanceof Error ? err.message : 'Payment failed. Please try again.'
