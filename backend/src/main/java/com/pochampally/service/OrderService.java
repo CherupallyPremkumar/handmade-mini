@@ -153,12 +153,15 @@ public class OrderService {
 
     /**
      * Step 2: Payment confirmed — decrement stock atomically, change status to PAID.
-     * This is called from the Razorpay callback or webhook.
+     * Uses pessimistic lock to prevent race condition between webhook and callback.
      * Idempotent — if already PAID, returns existing order.
+     * If stock decrement fails, marks order as STOCK_EXHAUSTED (needs manual refund).
      */
     @Transactional
     public Order markAsPaid(String razorpayOrderId, String razorpayPaymentId) {
-        Order order = getByRazorpayOrderId(razorpayOrderId);
+        // Pessimistic lock — only one thread can process this order at a time
+        Order order = orderRepository.findByRazorpayOrderIdForUpdate(razorpayOrderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found for Razorpay order: " + razorpayOrderId));
 
         // Idempotent: already paid, return as-is
         if (order.getStatus() == Order.OrderStatus.PAID) {
@@ -172,9 +175,19 @@ public class OrderService {
                     " as paid — current status: " + order.getStatus());
         }
 
-        // Decrement stock for each item NOW
-        for (OrderItem item : order.getItems()) {
-            productService.decrementStock(item.getProductId(), item.getQuantity());
+        // Decrement stock for each item — if any fails, mark for manual refund
+        try {
+            for (OrderItem item : order.getItems()) {
+                productService.decrementStock(item.getProductId(), item.getQuantity());
+            }
+        } catch (IllegalStateException e) {
+            // Stock exhausted after payment captured — needs manual refund
+            log.error("STOCK EXHAUSTED after payment! Order: {}, Razorpay: {}. MANUAL REFUND NEEDED.",
+                    order.getOrderNumber(), razorpayPaymentId);
+            order.setRazorpayPaymentId(razorpayPaymentId);
+            order.setPaymentStatus("captured_stock_exhausted");
+            order.setStatus(Order.OrderStatus.CANCELLED);
+            return orderRepository.save(order);
         }
 
         order.setRazorpayPaymentId(razorpayPaymentId);

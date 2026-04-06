@@ -20,6 +20,9 @@ public class CheckoutController {
     private final OrderService orderService;
     private final RazorpayService razorpayService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend-url:https://dhanunjaiah.com}")
+    private String frontendUrl;
+
     /**
      * Step 1: Create order from cart and generate Razorpay order.
      *
@@ -63,11 +66,17 @@ public class CheckoutController {
             return ResponseEntity.badRequest().body(Map.of("error", "Provide items or sessionId"));
         }
 
-        // Create Razorpay order
-        String razorpayOrderId = razorpayService.createRazorpayOrder(order.getTotalAmount(), order.getOrderNumber());
-
-        // Save Razorpay order ID back to our order
-        orderService.setRazorpayOrderId(order.getId(), razorpayOrderId);
+        // Create Razorpay order + save ID in single flow
+        // If this fails, the order exists but has no Razorpay ID — will be cleaned up by expiry scheduler
+        String razorpayOrderId;
+        try {
+            razorpayOrderId = razorpayService.createRazorpayOrder(order.getTotalAmount(), order.getOrderNumber());
+            orderService.setRazorpayOrderId(order.getId(), razorpayOrderId);
+        } catch (Exception e) {
+            log.error("Failed to create Razorpay order for {}: {}", order.getOrderNumber(), e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Payment gateway error. Please try again."));
+        }
 
         log.info("Checkout initiated. Order: {}, Razorpay order: {}, Amount: {} paisa",
                 order.getOrderNumber(), razorpayOrderId, order.getTotalAmount());
@@ -141,11 +150,11 @@ public class CheckoutController {
         if (valid) {
             Order order = orderService.markAsPaid(razorpayOrderId, razorpayPaymentId);
             log.info("Payment callback: Order {} marked PAID", order.getOrderNumber());
-            String frontendUrl = "https://dhanunjaiah.com/order-confirmation/" + order.getOrderNumber();
-            return ResponseEntity.status(302).header("Location", frontendUrl).build();
+            String redirectUrl = frontendUrl + "/order-confirmation/" + order.getOrderNumber();
+            return ResponseEntity.status(302).header("Location", redirectUrl).build();
         } else {
             log.warn("Payment callback: Invalid signature for {}", razorpayOrderId);
-            return ResponseEntity.status(302).header("Location", "https://dhanunjaiah.com/checkout?error=payment_failed").build();
+            return ResponseEntity.status(302).header("Location", frontendUrl + "/checkout?error=payment_failed").build();
         }
     }
 }
