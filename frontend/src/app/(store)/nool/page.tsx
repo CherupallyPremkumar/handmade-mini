@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { formatINR, formatFabric, formatWeave } from '@/lib/format';
 
@@ -24,41 +24,56 @@ interface Product {
 
 export default function NoolPage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [muted, setMuted] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   useEffect(() => {
     fetch(`${API}/api/products`)
       .then((res) => res.json())
-      .then((data: Product[]) => {
-        setProducts(data.filter((p) => p.videoUrl));
-      })
+      .then((data: Product[]) => setProducts(data.filter((p) => p.videoUrl)))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
+  // Play active video, pause others
   useEffect(() => {
     videoRefs.current.forEach((v, i) => {
       if (!v) return;
-      if (i === currentIndex) {
-        v.muted = muted;
+      v.muted = muted;
+      if (i === activeIndex) {
         v.play().catch(() => {});
       } else {
         v.pause();
         v.currentTime = 0;
       }
     });
-  }, [currentIndex, muted]);
+  }, [activeIndex, muted]);
 
-  function next() {
-    if (currentIndex < products.length - 1) setCurrentIndex((i) => i + 1);
-  }
+  // Snap scroll observer
+  const observerCallback = useCallback((entries: IntersectionObserverEntry[]) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const idx = Number(entry.target.getAttribute('data-index'));
+        if (!isNaN(idx)) setActiveIndex(idx);
+      }
+    });
+  }, []);
 
-  function prev() {
-    if (currentIndex > 0) setCurrentIndex((i) => i - 1);
-  }
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(observerCallback, {
+      root: container,
+      threshold: 0.6,
+    });
+
+    container.querySelectorAll('[data-index]').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [products, observerCallback]);
 
   if (loading) {
     return (
@@ -70,8 +85,8 @@ export default function NoolPage() {
 
   if (products.length === 0) {
     return (
-      <div className="min-h-screen bg-bark flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-bark flex items-center justify-center text-center">
+        <div>
           <p className="text-cream/60 font-display text-xl mb-4">No Nool videos yet</p>
           <Link href="/sarees" className="btn-gold">Browse Collection</Link>
         </div>
@@ -79,26 +94,23 @@ export default function NoolPage() {
     );
   }
 
-  const current = products[currentIndex];
-  const discount = current.mrp > current.sellingPrice
+  const current = products[activeIndex];
+  const discount = current && current.mrp > current.sellingPrice
     ? Math.round(((current.mrp - current.sellingPrice) / current.mrp) * 100)
     : 0;
 
   return (
-    <div className="min-h-screen bg-bark flex flex-col">
+    <div className="h-screen bg-bark flex flex-col overflow-hidden">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between px-4 py-2 shrink-0">
         <Link href="/" className="font-ui text-sm text-cream/60 hover:text-cream flex items-center gap-1.5">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          <span className="hidden sm:inline">Back to store</span>
+          <span className="hidden sm:inline">Back</span>
         </Link>
         <h1 className="font-display text-lg font-bold text-cream">Nool</h1>
-        <button
-          onClick={() => setMuted(!muted)}
-          className="font-ui text-xs text-cream/60 hover:text-cream flex items-center gap-1"
-        >
+        <button onClick={() => setMuted(!muted)} className="font-ui text-xs text-cream/60 hover:text-cream flex items-center gap-1">
           {muted ? (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
@@ -109,125 +121,114 @@ export default function NoolPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
             </svg>
           )}
-          <span className="hidden sm:inline">{muted ? 'Unmute' : 'Mute'}</span>
         </button>
       </div>
 
-      {/* Main content: Desktop = video left + details right, Mobile = video only */}
-      <div className="flex-1 flex items-center justify-center px-4 pb-4">
-        <div className="w-full max-w-5xl mx-auto md:flex md:gap-8 md:items-center">
-
-          {/* LEFT: Video player */}
-          <div className="w-full md:w-[360px] md:shrink-0 mx-auto md:mx-0">
-            <div className="relative w-full max-w-sm mx-auto aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl">
+      {/* Main: Desktop = scrollable video left + sticky details right */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* LEFT: Vertical scroll video feed */}
+        <div
+          ref={scrollRef}
+          className="flex-1 md:flex-none md:w-[400px] lg:w-[440px] overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          {products.map((p, i) => (
+            <div
+              key={p.id}
+              data-index={i}
+              className="h-full snap-start snap-always relative flex items-center justify-center bg-black"
+            >
+              {/* Video */}
               <video
-                ref={(el) => { videoRefs.current[currentIndex] = el; }}
-                key={current.id}
-                src={current.videoUrl!}
-                poster={current.images && current.images.length > 0 ? current.images[0] : undefined}
-                className="absolute inset-0 w-full h-full object-cover z-10"
+                ref={(el) => { videoRefs.current[i] = el; }}
+                src={p.videoUrl!}
+                poster={p.images && p.images.length > 0 ? p.images[0] : undefined}
+                className="absolute inset-0 w-full h-full object-cover"
                 loop
                 playsInline
                 muted={muted}
-                autoPlay
+                preload={Math.abs(i - activeIndex) <= 1 ? 'auto' : 'none'}
               />
+
+              {/* Loading spinner (behind video) */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
               </div>
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+              {/* Gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 pointer-events-none z-10" />
 
-              {/* Nav arrows */}
-              {currentIndex > 0 && (
-                <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-white/80 hover:bg-black/60">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-              )}
-              {currentIndex < products.length - 1 && (
-                <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-white/80 hover:bg-black/60">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              )}
-
-              {/* Mobile: product overlay at bottom */}
-              <div className="md:hidden absolute bottom-0 left-0 right-0 p-4">
-                <Link
-                  href={`/sarees/${current.id}`}
-                  className="flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-lg p-3"
-                >
-                  {current.images?.[0] && (
-                    <img src={current.images[0]} alt={current.name} className="w-12 h-12 rounded object-cover" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-ui text-sm font-medium text-white truncate">{current.name}</p>
-                    <span className="font-ui text-sm font-bold text-gold">{formatINR(current.sellingPrice)}</span>
-                  </div>
-                  <span className="px-3 py-1.5 bg-gold text-bark font-ui text-xs font-bold rounded">SHOP</span>
-                </Link>
-              </div>
-
-              {/* Progress dots */}
-              <div className="absolute top-3 left-3 right-3 flex gap-1">
-                {products.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentIndex(i)}
-                    className={`h-1 flex-1 rounded-full transition-colors ${i === currentIndex ? 'bg-white' : 'bg-white/30'}`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT: Product details (desktop only) */}
-          <div className="hidden md:flex flex-col flex-1 justify-center">
-            <div className="max-w-md">
-              {/* Product images */}
-              {current.images?.length > 0 && (
-                <div className="flex gap-2 mb-6 overflow-x-auto">
-                  {current.images.map((img, i) => (
-                    <img
-                      key={i}
-                      src={img}
-                      alt={`${current.name} ${i + 1}`}
-                      className="w-20 h-20 rounded-lg object-cover border-2 border-cream-deep/20"
-                    />
+              {/* Active indicator */}
+              {i === activeIndex && (
+                <div className="absolute top-3 left-3 right-3 z-20 flex gap-1">
+                  {products.map((_, j) => (
+                    <div key={j} className={`h-0.5 flex-1 rounded-full ${j === i ? 'bg-white' : 'bg-white/20'}`} />
                   ))}
                 </div>
               )}
 
-              {/* Name */}
-              <h2 className="font-display text-2xl font-bold text-cream mb-2">
-                {current.name}
-              </h2>
+              {/* Mobile: product overlay */}
+              <div className="md:hidden absolute bottom-0 left-0 right-0 p-4 z-20">
+                <p className="font-display text-sm font-semibold text-white mb-2">{p.name}</p>
+                <Link
+                  href={`/sarees/${p.id}`}
+                  className="flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-lg p-2.5"
+                >
+                  {p.images?.[0] && (
+                    <img src={p.images[0]} alt={p.name} className="w-10 h-10 rounded object-cover" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <span className="font-ui text-sm font-bold text-gold">{formatINR(p.sellingPrice)}</span>
+                    {p.mrp > p.sellingPrice && (
+                      <span className="font-ui text-xs text-white/40 line-through ml-2">{formatINR(p.mrp)}</span>
+                    )}
+                  </div>
+                  <span className="px-2.5 py-1 bg-gold text-bark font-ui text-xs font-bold rounded">SHOP</span>
+                </Link>
+              </div>
 
-              {/* Price */}
+              {/* Right side action buttons (mobile) */}
+              <div className="md:hidden absolute right-3 bottom-28 z-20 flex flex-col items-center gap-5">
+                <Link href={`/sarees/${p.id}`} className="flex flex-col items-center gap-1">
+                  <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                  </div>
+                  <span className="font-ui text-[10px] text-white/80">Shop</span>
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* RIGHT: Product details (desktop only) */}
+        {current && (
+          <div className="hidden md:flex flex-1 items-center justify-center px-8 overflow-y-auto">
+            <div className="max-w-md w-full py-8">
+              {/* Images */}
+              {current.images && current.images.length > 0 && (
+                <div className="flex gap-2 mb-6">
+                  {current.images.map((img, i) => (
+                    <img key={i} src={img} alt={`${current.name} ${i + 1}`} className="w-20 h-20 rounded-lg object-cover border-2 border-cream-deep/20" />
+                  ))}
+                </div>
+              )}
+
+              <h2 className="font-display text-2xl font-bold text-cream mb-2">{current.name}</h2>
+
               <div className="flex items-baseline gap-3 mb-4">
-                <span className="font-display text-3xl font-bold text-gold">
-                  {formatINR(current.sellingPrice)}
-                </span>
+                <span className="font-display text-3xl font-bold text-gold">{formatINR(current.sellingPrice)}</span>
                 {current.mrp > current.sellingPrice && (
                   <>
-                    <span className="font-ui text-lg text-cream/40 line-through">
-                      {formatINR(current.mrp)}
-                    </span>
-                    <span className="px-2 py-0.5 bg-maroon text-cream font-ui text-xs font-bold rounded">
-                      {discount}% OFF
-                    </span>
+                    <span className="font-ui text-lg text-cream/40 line-through">{formatINR(current.mrp)}</span>
+                    <span className="px-2 py-0.5 bg-maroon text-cream font-ui text-xs font-bold rounded">{discount}% OFF</span>
                   </>
                 )}
               </div>
 
-              {/* Description */}
-              <p className="font-body text-sm text-cream/60 leading-relaxed mb-6">
-                {current.description}
-              </p>
+              <p className="font-body text-sm text-cream/60 leading-relaxed mb-6">{current.description}</p>
 
-              {/* Details */}
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <div className="bg-cream/5 rounded-lg p-3">
                   <p className="font-ui text-[10px] uppercase tracking-wider text-cream/40 mb-1">Fabric</p>
@@ -247,26 +248,17 @@ export default function NoolPage() {
                 </div>
               </div>
 
-              {/* Stock */}
               {current.stock <= 5 && (
-                <p className="font-ui text-xs text-terracotta mb-4">
-                  Only {current.stock} left in stock
-                </p>
+                <p className="font-ui text-xs text-terracotta mb-4">Only {current.stock} left in stock</p>
               )}
 
-              {/* CTA */}
-              <Link
-                href={`/sarees/${current.id}`}
-                className="btn-primary w-full text-center block"
-              >
+              <Link href={`/sarees/${current.id}`} className="btn-primary w-full text-center block">
                 View Product & Buy
               </Link>
             </div>
           </div>
-        </div>
+        )}
       </div>
-
-      <div className="h-4" />
     </div>
   );
 }
