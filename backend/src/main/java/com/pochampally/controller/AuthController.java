@@ -6,7 +6,9 @@ import com.pochampally.dto.LoginRequest;
 import com.pochampally.dto.RegisterRequest;
 import com.pochampally.entity.User;
 import com.pochampally.service.AuthService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,14 +26,28 @@ public class AuthController {
     private final AuthService authService;
     private final LoginRateLimiter loginRateLimiter;
 
+    private static final String AUTH_COOKIE = "dhn_token";
+    private static final int COOKIE_MAX_AGE = 24 * 60 * 60; // 24 hours
+
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResponse response = authService.register(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest request,
+                                                         HttpServletResponse response) {
+        AuthResponse authResponse = authService.register(request);
+        setAuthCookie(response, authResponse.getToken());
+
+        // Return user info + token (for API clients) AND set httpOnly cookie (for browser)
+        return ResponseEntity.ok(Map.of(
+                "token", authResponse.getToken(),
+                "name", authResponse.getName(),
+                "email", authResponse.getEmail(),
+                "role", authResponse.getRole()
+        ));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request,
+                                    HttpServletRequest httpRequest,
+                                    HttpServletResponse response) {
         String clientIp = resolveClientIp(httpRequest);
         if (!loginRateLimiter.tryAcquire(clientIp)) {
             long retryAfter = loginRateLimiter.retryAfterSeconds(clientIp);
@@ -42,16 +58,29 @@ public class AuthController {
                             "retryAfterSeconds", retryAfter
                     ));
         }
-        AuthResponse response = authService.login(request);
-        return ResponseEntity.ok(response);
+
+        AuthResponse authResponse = authService.login(request);
+        setAuthCookie(response, authResponse.getToken());
+
+        return ResponseEntity.ok(Map.of(
+                "token", authResponse.getToken(),
+                "name", authResponse.getName(),
+                "email", authResponse.getEmail(),
+                "role", authResponse.getRole()
+        ));
     }
 
-    private String resolveClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout(HttpServletResponse response) {
+        Cookie cookie = new Cookie(AUTH_COOKIE, "");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setAttribute("SameSite", "None");
+        response.addCookie(cookie);
+
+        return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
 
     @GetMapping("/me")
@@ -66,5 +95,23 @@ public class AuthController {
                 "phone", user.getPhone() != null ? user.getPhone() : "",
                 "role", user.getRole().name()
         ));
+    }
+
+    private void setAuthCookie(HttpServletResponse response, String token) {
+        Cookie cookie = new Cookie(AUTH_COOKIE, token);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(COOKIE_MAX_AGE);
+        cookie.setAttribute("SameSite", "None");
+        response.addCookie(cookie);
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

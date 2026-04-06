@@ -88,7 +88,7 @@ export default function AdminOrdersPage() {
       const url = statusFilter
         ? `${API}/api/admin/orders?status=${statusFilter}`
         : `${API}/api/admin/orders`;
-      const res = await fetch(url, { headers: getAuthHeaders() });
+      const res = await fetch(url, { credentials: "include" as RequestCredentials });
       if (res.ok) {
         setOrders(await res.json());
       }
@@ -107,8 +107,8 @@ export default function AdminOrdersPage() {
         body.trackingNumber = trackingInput[orderId];
       }
       const res = await fetch(`${API}/api/admin/orders/${orderId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        method: 'PATCH', credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       if (res.ok) {

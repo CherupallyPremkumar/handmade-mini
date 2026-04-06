@@ -24,7 +24,7 @@ async function request<T>(
   };
 
   try {
-    const res = await fetch(url, { ...options, headers });
+    const res = await fetch(url, { ...options, headers, credentials: 'include' });
     if (!res.ok) {
       const errorBody = await res.json().catch(() => null);
       return {

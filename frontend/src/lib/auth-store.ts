@@ -10,7 +10,6 @@ export interface AuthUser {
 }
 
 interface AuthState {
-  token: string | null;
   user: AuthUser | null;
   isLoggedIn: boolean;
   isAdmin: boolean;
@@ -22,8 +21,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
-      token: null,
+    (set) => ({
       user: null,
       isLoggedIn: false,
       isAdmin: false,
@@ -32,6 +30,7 @@ export const useAuthStore = create<AuthState>()(
         const res = await fetch(`${API}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // sends & receives httpOnly cookies
           body: JSON.stringify({ email, password }),
         });
 
@@ -42,24 +41,19 @@ export const useAuthStore = create<AuthState>()(
 
         const data = await res.json();
         const user: AuthUser = {
-          name: data.user?.name || data.name || email.split('@')[0],
-          email: data.user?.email || data.email || email,
-          role: data.user?.role || data.role || 'CUSTOMER',
+          name: data.name || email.split('@')[0],
+          email: data.email || email,
+          role: data.role || 'CUSTOMER',
         };
-        const token = data.token || data.accessToken;
 
-        set({
-          token,
-          user,
-          isLoggedIn: true,
-          isAdmin: user.role === 'ADMIN',
-        });
+        set({ user, isLoggedIn: true, isAdmin: user.role === 'ADMIN' });
       },
 
       register: async (name: string, email: string, password: string) => {
         const res = await fetch(`${API}/api/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ name, email, password }),
         });
 
@@ -70,34 +64,23 @@ export const useAuthStore = create<AuthState>()(
 
         const data = await res.json();
         const user: AuthUser = {
-          name: data.user?.name || data.name || name,
-          email: data.user?.email || data.email || email,
-          role: data.user?.role || data.role || 'CUSTOMER',
+          name: data.name || name,
+          email: data.email || email,
+          role: data.role || 'CUSTOMER',
         };
-        const token = data.token || data.accessToken;
 
-        set({
-          token,
-          user,
-          isLoggedIn: true,
-          isAdmin: user.role === 'ADMIN',
-        });
+        set({ user, isLoggedIn: true, isAdmin: user.role === 'ADMIN' });
       },
 
       logout: () => {
-        set({
-          token: null,
-          user: null,
-          isLoggedIn: false,
-          isAdmin: false,
-        });
+        // Clear httpOnly cookie via backend
+        fetch(`${API}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
+        set({ user: null, isLoggedIn: false, isAdmin: false });
       },
 
-      getAuthHeaders: (): Record<string, string> => {
-        const token = get().token;
-        if (!token) return {};
-        return { Authorization: `Bearer ${token}` };
-      },
+      // No longer needed for httpOnly cookies — browser sends automatically
+      // Kept for backward compatibility with direct fetch calls
+      getAuthHeaders: (): Record<string, string> => ({}),
     }),
     {
       name: 'dhanunjaiah-auth',
@@ -106,11 +89,16 @@ export const useAuthStore = create<AuthState>()(
 );
 
 /**
- * Standalone helper to read auth headers without hooks.
- * Safe for use inside api.ts or other non-component code.
+ * For httpOnly cookies, no manual headers needed.
+ * Just use credentials: 'include' on fetch calls.
  */
 export function authHeaders(): Record<string, string> {
-  const state = useAuthStore.getState();
-  if (!state.token) return {};
-  return { Authorization: `Bearer ${state.token}` };
+  return {};
+}
+
+/**
+ * Authenticated fetch — includes httpOnly cookie automatically.
+ */
+export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  return fetch(url, { ...options, credentials: 'include' });
 }

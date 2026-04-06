@@ -78,7 +78,7 @@ export default function ImageUploader({
         const res = await fetch(
           `${API}/api/admin/images/upload?sareeId=${encodeURIComponent(sareeId)}`,
           {
-            method: 'POST',
+            method: 'POST', credentials: 'include' as RequestCredentials,
             headers,
             body: formData,
           }

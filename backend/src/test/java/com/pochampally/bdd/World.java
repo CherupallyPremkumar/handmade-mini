@@ -143,7 +143,7 @@ public class World {
 
     // ── Auth helpers ──
 
-    /** Register + login, store token. Works even if email already registered. */
+    /** Register + login, store token from cookie. Works even if email already registered. */
     void loginAs(String email, String password) throws Exception {
         post("/api/auth/register",
                 """
@@ -155,7 +155,9 @@ public class World {
                 {"email":"%s","password":"%s"}
                 """.formatted(email, password));
 
-        token = jsonKeyFrom(r, "token");
+        // Extract token from httpOnly cookie
+        jakarta.servlet.http.Cookie cookie = r.getResponse().getCookie("dhn_token");
+        token = cookie != null ? cookie.getValue() : jsonKeyFrom(r, "token");
     }
 
     /** Register + login as admin (promotes role in DB). */
@@ -176,7 +178,8 @@ public class World {
                 {"email":"%s","password":"Admin@123"}
                 """.formatted(email));
 
-        token = jsonKeyFrom(r, "token");
+        jakarta.servlet.http.Cookie cookie = r.getResponse().getCookie("dhn_token");
+        token = cookie != null ? cookie.getValue() : jsonKeyFrom(r, "token");
     }
 
     // ── Product helpers ──

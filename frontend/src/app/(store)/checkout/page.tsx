@@ -149,8 +149,8 @@ export default function CheckoutPage() {
       // 1. Create order on backend
       const API = process.env.NEXT_PUBLIC_API_URL || '';
       const res = await fetch(`${API}/api/checkout/create-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        method: 'POST', credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerName: form.name,
           customerPhone: form.phone.startsWith('+91') ? form.phone : `+91${form.phone}`,

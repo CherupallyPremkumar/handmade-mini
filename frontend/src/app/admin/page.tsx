@@ -41,7 +41,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API}/api/admin/orders`, { headers: getAuthHeaders() }).then((r) => r.ok ? r.json() : []),
+      fetch(`${API}/api/admin/orders`, { credentials: "include" as RequestCredentials }).then((r) => r.ok ? r.json() : []),
       fetch(`${API}/api/products`).then((r) => r.ok ? r.json() : []),
     ])
       .then(([o, p]) => { setOrders(o); setProducts(p); })

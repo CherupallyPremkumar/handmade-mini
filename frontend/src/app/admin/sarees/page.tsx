@@ -116,7 +116,7 @@ export default function AdminProductsPage() {
       const url = modalMode === 'add' ? `${API}/api/admin/products` : `${API}/api/admin/products/${editId}`;
       const method = modalMode === 'add' ? 'POST' : 'PUT';
       const res = await fetch(url, {
-        method, headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        method, headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, isActive: true }),
       });
       if (res.ok) { setModalMode('closed'); fetchProducts(); }
@@ -126,7 +126,7 @@ export default function AdminProductsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this product?')) return;
-    await fetch(`${API}/api/admin/products/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    await fetch(`${API}/api/admin/products/${id}`, { method: "DELETE", credentials: "include" as RequestCredentials });
     fetchProducts();
   }
 
@@ -141,20 +141,20 @@ export default function AdminProductsPage() {
       try {
         // 1. Get presigned URL from backend
         const presignRes = await fetch(`${API}/api/admin/media/presign-image`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          method: 'POST', credentials: 'include' as RequestCredentials,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ productId: editId, contentType: file.type, filename: file.name }),
         });
         if (!presignRes.ok) continue;
         const { uploadUrl, cdnUrl } = await presignRes.json();
 
         // 2. Upload directly to R2 (browser → R2, bypasses backend)
-        await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+        await fetch(uploadUrl, { method: 'PUT', credentials: 'include' as RequestCredentials, headers: { 'Content-Type': file.type }, body: file });
 
         // 3. Confirm upload to backend
         await fetch(`${API}/api/admin/media/confirm-image`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          method: 'POST', credentials: 'include' as RequestCredentials,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ productId: editId, cdnUrl }),
         });
 
@@ -168,7 +168,7 @@ export default function AdminProductsPage() {
   async function handleImageDelete(imageUrl: string) {
     if (!editId) return;
     await fetch(`${API}/api/admin/media/image?productId=${editId}&imageUrl=${encodeURIComponent(imageUrl)}`, {
-      method: 'DELETE', headers: getAuthHeaders(),
+      method: 'DELETE', credentials: 'include' as RequestCredentials,
     });
     setEditProduct((prev) => prev ? { ...prev, images: prev.images.filter((u) => u !== imageUrl) } : prev);
     fetchProducts();
@@ -180,20 +180,20 @@ export default function AdminProductsPage() {
     try {
       // 1. Get presigned URL
       const presignRes = await fetch(`${API}/api/admin/media/presign-video`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        method: 'POST', credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId: videoProductId, contentType: videoFile.type, filename: videoFile.name }),
       });
       if (!presignRes.ok) { setVideoError('Failed to prepare upload'); return; }
       const { uploadUrl, cdnUrl } = await presignRes.json();
 
       // 2. Upload directly to R2
-      await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': videoFile.type }, body: videoFile });
+      await fetch(uploadUrl, { method: 'PUT', credentials: 'include' as RequestCredentials, headers: { 'Content-Type': videoFile.type }, body: videoFile });
 
       // 3. Confirm
       await fetch(`${API}/api/admin/media/confirm-video`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        method: 'POST', credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId: videoProductId, cdnUrl }),
       });
 

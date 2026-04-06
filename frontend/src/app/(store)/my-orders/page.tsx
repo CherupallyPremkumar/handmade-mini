@@ -49,7 +49,7 @@ export default function MyOrdersPage() {
   async function fetchOrders() {
     try {
       const res = await fetch(`${API}/api/orders/my/list`, {
-        headers: getAuthHeaders(),
+        credentials: 'include' as RequestCredentials,
       });
       if (res.ok) {
         setOrders(await res.json());
