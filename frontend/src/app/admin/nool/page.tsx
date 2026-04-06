@@ -15,7 +15,6 @@ interface Product {
 }
 
 export default function AdminNoolPage() {
-  const { getAuthHeaders } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
