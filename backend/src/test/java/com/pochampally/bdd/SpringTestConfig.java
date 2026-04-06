@@ -72,5 +72,16 @@ public class SpringTestConfig {
                     .forcePathStyle(true)
                     .build();
         }
+
+        @Bean
+        @Primary
+        public software.amazon.awssdk.services.s3.presigner.S3Presigner dummyPresigner() {
+            return software.amazon.awssdk.services.s3.presigner.S3Presigner.builder()
+                    .endpointOverride(URI.create("http://localhost:1"))
+                    .credentialsProvider(StaticCredentialsProvider.create(
+                            AwsBasicCredentials.create("x", "x")))
+                    .region(Region.US_EAST_1)
+                    .build();
+        }
     }
 }

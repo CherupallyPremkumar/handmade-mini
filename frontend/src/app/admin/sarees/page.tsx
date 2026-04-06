@@ -138,18 +138,28 @@ export default function AdminProductsPage() {
       if (!file.type.startsWith('image/')) continue;
       if (file.size > 5 * 1024 * 1024) { setSaveError('Each image must be under 5MB'); continue; }
 
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('productId', editId);
       try {
-        const res = await fetch(`${API}/api/admin/images/upload`, {
-          method: 'POST', headers: getAuthHeaders(), body: fd,
+        // 1. Get presigned URL from backend
+        const presignRes = await fetch(`${API}/api/admin/media/presign-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ productId: editId, contentType: file.type, filename: file.name }),
         });
-        if (res.ok) {
-          const data = await res.json();
-          setEditProduct((prev) => prev ? { ...prev, images: [...(prev.images || []), data.imageUrl] } : prev);
-        }
-      } catch {}
+        if (!presignRes.ok) continue;
+        const { uploadUrl, cdnUrl } = await presignRes.json();
+
+        // 2. Upload directly to R2 (browser → R2, bypasses backend)
+        await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+
+        // 3. Confirm upload to backend
+        await fetch(`${API}/api/admin/media/confirm-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ productId: editId, cdnUrl }),
+        });
+
+        setEditProduct((prev) => prev ? { ...prev, images: [...(prev.images || []), cdnUrl] } : prev);
+      } catch { setSaveError('Image upload failed'); }
     }
     setImageUploading(false);
     fetchProducts();
@@ -157,7 +167,7 @@ export default function AdminProductsPage() {
 
   async function handleImageDelete(imageUrl: string) {
     if (!editId) return;
-    await fetch(`${API}/api/admin/images?productId=${editId}&imageUrl=${encodeURIComponent(imageUrl)}`, {
+    await fetch(`${API}/api/admin/media/image?productId=${editId}&imageUrl=${encodeURIComponent(imageUrl)}`, {
       method: 'DELETE', headers: getAuthHeaders(),
     });
     setEditProduct((prev) => prev ? { ...prev, images: prev.images.filter((u) => u !== imageUrl) } : prev);
@@ -168,14 +178,26 @@ export default function AdminProductsPage() {
     if (!videoFile || !videoProductId) return;
     setVideoUploading(true); setVideoError('');
     try {
-      const fd = new FormData();
-      fd.append('file', videoFile);
-      fd.append('productId', videoProductId);
-      const res = await fetch(`${API}/api/admin/videos/upload`, {
-        method: 'POST', headers: getAuthHeaders(), body: fd,
+      // 1. Get presigned URL
+      const presignRes = await fetch(`${API}/api/admin/media/presign-video`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify({ productId: videoProductId, contentType: videoFile.type, filename: videoFile.name }),
       });
-      if (res.ok) { setVideoProductId(null); setVideoFile(null); fetchProducts(); }
-      else { setVideoError('Upload failed'); }
+      if (!presignRes.ok) { setVideoError('Failed to prepare upload'); return; }
+      const { uploadUrl, cdnUrl } = await presignRes.json();
+
+      // 2. Upload directly to R2
+      await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': videoFile.type }, body: videoFile });
+
+      // 3. Confirm
+      await fetch(`${API}/api/admin/media/confirm-video`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify({ productId: videoProductId, cdnUrl }),
+      });
+
+      setVideoProductId(null); setVideoFile(null); fetchProducts();
     } catch { setVideoError('Upload failed'); } finally { setVideoUploading(false); }
   }
 
