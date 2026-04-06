@@ -232,8 +232,9 @@ public class Steps {
             """.formatted(items));
 
         if (w.status() == 200) {
-            w.savedOrderId = w.jsonKey("orderId");
             w.savedOrderNumber = w.jsonKey("orderNumber");
+            var order = w.orders.findByOrderNumber(w.savedOrderNumber).orElse(null);
+            w.savedOrderId = order != null ? order.getId() : null;
             w.savedOrderAmount = w.jsonKeyLong("amount");
         }
     }

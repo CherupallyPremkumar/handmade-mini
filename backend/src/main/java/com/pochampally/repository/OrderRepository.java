@@ -26,4 +26,6 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     Optional<Order> findByRazorpayOrderIdForUpdate(@Param("razorpayOrderId") String razorpayOrderId);
 
     List<Order> findByStatusAndCreatedTimeBefore(Order.OrderStatus status, java.time.Instant cutoff);
+
+    long countByCustomerEmailAndStatus(String email, Order.OrderStatus status);
 }

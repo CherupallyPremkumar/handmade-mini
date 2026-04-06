@@ -8,11 +8,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -33,11 +33,21 @@ public class OrderService {
      * Stock is NOT decremented — only validated.
      * Stock gets decremented only when payment is confirmed.
      */
+    private static final int MAX_PENDING_ORDERS = 3;
+
     @Transactional
     public Order createOrderFromItems(List<Map<String, Object>> items, String customerName,
                                       String customerPhone, String customerEmail, Map<String, String> shippingAddress) {
         if (items == null || items.isEmpty()) {
             throw new IllegalStateException("No items provided");
+        }
+
+        // Prevent spam: max 3 pending orders per customer
+        if (customerEmail != null) {
+            long pending = orderRepository.countByCustomerEmailAndStatus(customerEmail, Order.OrderStatus.PENDING_PAYMENT);
+            if (pending >= MAX_PENDING_ORDERS) {
+                throw new IllegalStateException("Too many pending orders. Complete or wait for existing orders to expire.");
+            }
         }
 
         Order order = Order.builder()
@@ -292,18 +302,18 @@ public class OrderService {
         }
     }
 
-    private String generateOrderNumber() {
-        long timestamp = Instant.now().toEpochMilli();
-        String random6 = randomAlphanumeric(6);
-        return "DHN-" + timestamp + "-" + random6;
-    }
-
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    private String generateOrderNumber() {
+        String random10 = randomAlphanumeric(10);
+        return "DHN-" + random10;
+    }
 
     private String randomAlphanumeric(int length) {
         StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
-            sb.append(ALPHANUMERIC.charAt(ThreadLocalRandom.current().nextInt(ALPHANUMERIC.length())));
+            sb.append(ALPHANUMERIC.charAt(SECURE_RANDOM.nextInt(ALPHANUMERIC.length())));
         }
         return sb.toString();
     }

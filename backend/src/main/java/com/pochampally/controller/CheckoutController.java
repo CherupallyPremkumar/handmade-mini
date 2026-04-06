@@ -1,5 +1,6 @@
 package com.pochampally.controller;
 
+import com.pochampally.dto.CreateOrderRequest;
 import com.pochampally.entity.Order;
 import com.pochampally.service.OrderService;
 import com.pochampally.service.RazorpayService;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/checkout")
@@ -42,26 +44,36 @@ public class CheckoutController {
      * }
      */
     @PostMapping("/create-order")
-    @SuppressWarnings("unchecked")
-    public ResponseEntity<Map<String, Object>> createOrder(@RequestBody Map<String, Object> body) {
-        String customerName = (String) body.get("customerName");
-        String customerPhone = (String) body.get("customerPhone");
-        String customerEmail = (String) body.get("customerEmail");
-        Map<String, String> shippingAddress = (Map<String, String>) body.get("shippingAddress");
-        List<Map<String, Object>> items = (List<Map<String, Object>>) body.get("items");
-        String sessionId = (String) body.get("sessionId");
+    public ResponseEntity<Map<String, Object>> createOrder(@RequestBody CreateOrderRequest req) {
+        String customerName = req.getCustomerName();
+        String customerPhone = req.getCustomerPhone();
+        String customerEmail = req.getCustomerEmail();
+        Map<String, String> shippingAddress = req.getShippingAddress();
 
         if (customerName == null || customerPhone == null || shippingAddress == null) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "Missing required fields: customerName, customerPhone, shippingAddress"));
         }
 
-        // Create order — accept items directly from frontend cart
+        // Input sanitization
+        if (customerName.length() > 200) customerName = customerName.substring(0, 200);
+        if (customerPhone.length() > 20) customerPhone = customerPhone.substring(0, 20);
+        if (customerEmail != null && customerEmail.length() > 200) customerEmail = customerEmail.substring(0, 200);
+
+        // Create order
         Order order;
-        if (items != null && !items.isEmpty()) {
+        if (req.getItems() != null && !req.getItems().isEmpty()) {
+            List<Map<String, Object>> items = req.getItems().stream()
+                    .map(i -> {
+                        java.util.HashMap<String, Object> m = new java.util.HashMap<>();
+                        m.put("productId", i.getProductId());
+                        m.put("quantity", i.getQuantity());
+                        return (Map<String, Object>) m;
+                    })
+                    .collect(Collectors.toList());
             order = orderService.createOrderFromItems(items, customerName, customerPhone, customerEmail, shippingAddress);
-        } else if (sessionId != null) {
-            order = orderService.createOrder(sessionId, customerName, customerPhone, customerEmail, shippingAddress);
+        } else if (req.getSessionId() != null) {
+            order = orderService.createOrder(req.getSessionId(), customerName, customerPhone, customerEmail, shippingAddress);
         } else {
             return ResponseEntity.badRequest().body(Map.of("error", "Provide items or sessionId"));
         }
@@ -82,7 +94,6 @@ public class CheckoutController {
                 order.getOrderNumber(), razorpayOrderId, order.getTotalAmount());
 
         return ResponseEntity.ok(Map.of(
-                "orderId", order.getId(),
                 "orderNumber", order.getOrderNumber(),
                 "razorpayOrderId", razorpayOrderId,
                 "razorpayKeyId", razorpayService.getKeyId(),

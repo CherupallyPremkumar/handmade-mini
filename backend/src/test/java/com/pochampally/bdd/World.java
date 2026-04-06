@@ -226,8 +226,10 @@ public class World {
             }
             """.formatted(productId(productName), qty);
         MvcResult r = postAuth("/api/checkout/create-order", body);
-        savedOrderId = jsonKeyFrom(r, "orderId");
         savedOrderNumber = jsonKeyFrom(r, "orderNumber");
+        // Look up order ID from DB by order number
+        var order = orders.findByOrderNumber(savedOrderNumber).orElse(null);
+        savedOrderId = order != null ? order.getId() : null;
         savedOrderAmount = json.readTree(r.getResponse().getContentAsString()).get("amount").asLong();
     }
 }
