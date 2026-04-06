@@ -147,7 +147,7 @@ export default function CheckoutPage() {
     setLoading(true);
     try {
       // 1. Create order on backend
-      const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
+      const API = process.env.NEXT_PUBLIC_API_URL || '';
       const res = await fetch(`${API}/api/checkout/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
@@ -177,7 +177,7 @@ export default function CheckoutPage() {
       const order = await res.json();
 
       // 2. Redirect to Razorpay hosted checkout page — cart clears on confirmation page
-      const key = process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_test_placeholder';
+      const key = process.env.NEXT_PUBLIC_RAZORPAY_KEY || '';
       const callback = `${API}/api/checkout/payment-callback`;
       const phone = form.phone.startsWith('+91') ? form.phone : `+91${form.phone}`;
 

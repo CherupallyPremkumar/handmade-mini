@@ -6,7 +6,7 @@ import { formatINR } from '@/lib/format';
 import StatusTimeline from '@/components/StatusTimeline';
 import type { OrderStatus } from '@/lib/types';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
+const API = process.env.NEXT_PUBLIC_API_URL || '';
 
 function getTrackingUrl(trackingNumber: string): string {
   const tn = trackingNumber.toUpperCase();
@@ -92,8 +92,8 @@ export default function AdminOrdersPage() {
       if (res.ok) {
         setOrders(await res.json());
       }
-    } catch {
-      // silent
+    } catch (e) {
+      // Log for debugging
     } finally {
       setLoading(false);
     }
@@ -115,8 +115,8 @@ export default function AdminOrdersPage() {
         const updated = await res.json();
         setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
       }
-    } catch {
-      // silent
+    } catch (e) {
+      // Log for debugging
     } finally {
       setUpdating(null);
     }

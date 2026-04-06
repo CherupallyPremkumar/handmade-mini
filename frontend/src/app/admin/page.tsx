@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/lib/auth-store';
 import { formatINR } from '@/lib/format';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
+const API = process.env.NEXT_PUBLIC_API_URL || '';
 
 interface Order {
   id: string;
@@ -45,7 +45,7 @@ export default function AdminDashboard() {
       fetch(`${API}/api/products`).then((r) => r.ok ? r.json() : []),
     ])
       .then(([o, p]) => { setOrders(o); setProducts(p); })
-      .catch(() => {})
+      .catch(() => { setOrders([]); setProducts([]); })
       .finally(() => setLoading(false));
   }, []);
 

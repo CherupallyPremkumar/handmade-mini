@@ -84,13 +84,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://localhost:5173",
                 "https://dhanunjaiah.com",
                 "https://www.dhanunjaiah.com",
                 "https://dhanunjaiah.in",
-                "https://www.dhanunjaiah.in",
-                "https://handmade-mini.pages.dev"
+                "https://www.dhanunjaiah.in"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));

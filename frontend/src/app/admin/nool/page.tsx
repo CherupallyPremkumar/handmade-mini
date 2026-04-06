@@ -5,7 +5,7 @@ import { useAuthStore } from '@/lib/auth-store';
 import { formatINR } from '@/lib/format';
 import { api } from '@/lib/api';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
+const API = process.env.NEXT_PUBLIC_API_URL || '';
 
 interface Product {
   id: string;
@@ -34,8 +34,8 @@ export default function AdminNoolPage() {
     try {
       const res = await fetch(`${API}/api/products`);
       if (res.ok) setProducts(await res.json());
-    } catch {
-      // silent
+    } catch (e) {
+      // Log for debugging
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export default function AdminNoolPage() {
       } else {
         setUploadError(result.errors?.[0]?.description || 'Upload failed');
       }
-    } catch {
+    } catch (e) {
       setUploadError('Upload failed');
     } finally {
       setUploadingId(null);

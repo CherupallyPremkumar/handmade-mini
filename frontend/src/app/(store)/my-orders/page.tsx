@@ -8,7 +8,7 @@ import StatusTimeline from '@/components/StatusTimeline';
 import { formatINR } from '@/lib/format';
 import type { OrderStatus } from '@/lib/types';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
+const API = process.env.NEXT_PUBLIC_API_URL || '';
 
 interface TrackingItem {
   productName: string;
@@ -54,8 +54,8 @@ export default function MyOrdersPage() {
       if (res.ok) {
         setOrders(await res.json());
       }
-    } catch {
-      // silent
+    } catch (e) {
+      // Log for debugging
     } finally {
       setLoading(false);
     }

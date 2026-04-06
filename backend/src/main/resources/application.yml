@@ -43,13 +43,13 @@ cloudflare:
 
 # Razorpay configuration
 razorpay:
-  key-id: ${RAZORPAY_KEY_ID:rzp_test_SZgTibLDyK3Gg8}
-  key-secret: ${RAZORPAY_KEY_SECRET:fr52RaE1ZSZa35a5Ca2a1Mx0}
-  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:change-this-in-production}
+  key-id: ${RAZORPAY_KEY_ID}
+  key-secret: ${RAZORPAY_KEY_SECRET}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
 
 # JWT Authentication
 app:
-  jwt-secret: ${JWT_SECRET:dhanunjaiah-handlooms-local-dev-only-key-2026-not-for-production}
+  jwt-secret: ${JWT_SECRET}
 
 # Logging
 logging:

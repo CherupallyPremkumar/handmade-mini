@@ -12,7 +12,7 @@ import type {
 import type { Nool } from './nool-data';
 import { authHeaders } from './auth-store';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
+const API = process.env.NEXT_PUBLIC_API_URL || '';
 
 async function request<T>(
   path: string,

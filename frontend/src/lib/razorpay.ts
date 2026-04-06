@@ -67,7 +67,7 @@ export function buildRazorpayOptions(params: {
   }) => void;
 }): RazorpayOptions {
   return {
-    key: process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_test_placeholder',
+    key: process.env.NEXT_PUBLIC_RAZORPAY_KEY || '',
     amount: params.amountInPaisa,
     currency: 'INR',
     name: 'Dhanunjaiah Handlooms',
