@@ -208,16 +208,30 @@ export default function CheckoutPage() {
 
       document.body.appendChild(formEl);
       formEl.submit();
+      // Don't setLoading(false) — page is redirecting to Razorpay
     } catch (err) {
+      setLoading(false);
       setPaymentError(
         err instanceof Error ? err.message : 'Payment failed. Please try again.'
       );
-    } finally {
-      setLoading(false);
     }
   }
 
   return (
+    <>
+    {/* Full-page redirect overlay */}
+    {loading && (
+      <div className="fixed inset-0 z-50 bg-bark/80 backdrop-blur-sm flex items-center justify-center">
+        <div className="text-center">
+          <svg className="w-12 h-12 text-gold mx-auto animate-spin mb-4" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p className="font-display text-xl font-semibold text-cream">Redirecting to Payment...</p>
+          <p className="font-ui text-sm text-cream/60 mt-2">Please wait, do not close this page</p>
+        </div>
+      </div>
+    )}
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 font-ui text-xs text-bark-light">
@@ -461,5 +475,6 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
