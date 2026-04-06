@@ -31,10 +31,16 @@ export default function NoolPage() {
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   useEffect(() => {
-    fetch(`${API}/api/products`)
-      .then((res) => res.json())
-      .then((data: Product[]) => setProducts(data.filter((p) => p.videoUrl)))
-      .catch(() => {})
+    fetch(`${API}/api/products`, { cache: 'no-store' })
+      .then((res) => {
+        if (!res.ok) throw new Error('API error');
+        return res.json();
+      })
+      .then((data: Product[]) => {
+        const withVideo = data.filter((p) => p.videoUrl);
+        setProducts(withVideo);
+      })
+      .catch((err) => console.error('Nool fetch failed:', err))
       .finally(() => setLoading(false));
   }, []);
 
