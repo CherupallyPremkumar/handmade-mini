@@ -104,10 +104,10 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2.5">
               <li className="font-ui text-sm text-cream/60">
-                Pochampally, Pochampalle Mandal
+                Gattuppal, Yadadri Bhuvanagiri
               </li>
               <li className="font-ui text-sm text-cream/60">
-                Yadadri Bhuvanagiri Dist, Telangana 508284
+                Telangana 508253
               </li>
               <li>
                 <a
@@ -127,7 +127,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://maps.google.com/?q=Pochampally+Handloom+Village+Yadadri+Bhuvanagiri+Telangana+508284"
+                  href="https://maps.google.com/?q=Gattuppal+Yadadri+Bhuvanagiri+Telangana+508253"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-ui text-xs text-gold/60 hover:text-gold transition-colors flex items-center gap-1"
