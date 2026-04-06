@@ -39,6 +39,9 @@ public class ImageStorageService {
      * Generate a presigned PUT URL for direct browser-to-R2 image upload.
      * The file never touches this server.
      */
+    private static final long MAX_IMAGE_SIZE = 5L * 1024 * 1024;   // 5MB
+    private static final long MAX_VIDEO_SIZE = 50L * 1024 * 1024;  // 50MB
+
     public Map<String, String> generatePresignedUploadUrl(String productId, String contentType, String filename) {
         if (!ALLOWED_IMAGE_TYPES.contains(contentType)) {
             throw new IllegalArgumentException("Invalid image type: " + contentType + ". Allowed: JPEG, PNG, WebP");
@@ -52,6 +55,7 @@ public class ImageStorageService {
                 .bucket(bucket)
                 .key(key)
                 .contentType(contentType)
+                .contentLength(MAX_IMAGE_SIZE)
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
@@ -81,6 +85,7 @@ public class ImageStorageService {
                 .bucket(bucket)
                 .key(key)
                 .contentType(contentType)
+                .contentLength(MAX_VIDEO_SIZE)
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
