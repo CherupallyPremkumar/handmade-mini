@@ -83,7 +83,6 @@ public class ImageStorageService {
                 .bucket(bucket)
                 .key(key)
                 .contentType(contentType)
-                .contentLength(MAX_VIDEO_SIZE)
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
