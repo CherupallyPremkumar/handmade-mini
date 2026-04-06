@@ -3,12 +3,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import SareeCard from '@/components/SareeCard';
 import FilterSidebar from '@/components/FilterSidebar';
-import { sampleSarees } from '@/lib/sample-data';
 import { api } from '@/lib/api';
 import type { Saree } from '@/lib/types';
 
 export default function SareesPage() {
-  const [sarees, setSarees] = useState<Saree[]>(sampleSarees);
+  const [sarees, setSarees] = useState<Saree[]>([]);
   const [fabric, setFabric] = useState('');
   const [weave, setWeave] = useState('');
   const [color, setColor] = useState('');
@@ -150,11 +149,8 @@ export default function SareesPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filtered.map((saree, i) => (
-                  <div
-                    key={saree.id}
-                    className={`opacity-0 animate-fade-in-up stagger-${Math.min(i + 1, 6)}`}
-                  >
+                {filtered.map((saree) => (
+                  <div key={saree.id} className="animate-fade-in-up">
                     <SareeCard saree={saree} />
                   </div>
                 ))}

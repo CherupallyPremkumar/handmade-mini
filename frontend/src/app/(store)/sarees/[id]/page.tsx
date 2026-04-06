@@ -3,7 +3,6 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { sampleSarees } from '@/lib/sample-data';
 import { api } from '@/lib/api';
 import { useCartStore } from '@/lib/cart-store';
 import type { Saree } from '@/lib/types';
@@ -18,7 +17,7 @@ export default function SareeDetailPage() {
   const params = useParams();
   const id = typeof params.id === 'string' ? params.id : '';
   const [saree, setSaree] = useState<Saree | null>(
-    sampleSarees.find((s) => s.id === id) ?? null
+    null
   );
   const [loading, setLoading] = useState(true);
   const addItem = useCartStore((s) => s.addItem);

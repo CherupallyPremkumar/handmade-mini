@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import SareeCard from '@/components/SareeCard';
-import { sampleSarees } from '@/lib/sample-data';
 import { api } from '@/lib/api';
 import type { Saree } from '@/lib/types';
 
@@ -62,7 +61,7 @@ const USP_ITEMS = [
 ];
 
 export default function HomePage() {
-  const [featured, setFeatured] = useState<Saree[]>(sampleSarees.slice(0, 4));
+  const [featured, setFeatured] = useState<Saree[]>([]);
 
   useEffect(() => {
     api.sarees.list().then(res => {
@@ -75,7 +74,7 @@ export default function HomePage() {
   return (
     <>
       {/* ════════════ HERO ════════════ */}
-      <section className="relative overflow-hidden bg-bark min-h-[55vh] flex items-center">
+      <section className="relative overflow-hidden bg-bark min-h-[40vh] sm:min-h-[50vh] flex items-center">
         {/* Background texture layers */}
         <div className="absolute inset-0">
           {/* Diagonal silk weave pattern */}
@@ -102,7 +101,7 @@ export default function HomePage() {
           <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-gold/10 rounded-full blur-[150px]" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
           <div className="max-w-3xl">
             {/* Overline */}
             <div className="flex items-center gap-3 mb-6 opacity-0 animate-fade-in-up">
@@ -114,7 +113,7 @@ export default function HomePage() {
 
             {/* Heading */}
             <h1 className="opacity-0 animate-fade-in-up stagger-1">
-              <span className="block font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-cream leading-[1.1] tracking-tight">
+              <span className="block font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-cream leading-[1.1] tracking-tight">
                 Authentic
               </span>
               <span className="block font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight mt-1">
@@ -203,11 +202,8 @@ export default function HomePage() {
 
           {/* Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featured.map((saree, i) => (
-              <div
-                key={saree.id}
-                className={`opacity-0 animate-fade-in-up stagger-${i + 1}`}
-              >
+            {featured.map((saree) => (
+              <div key={saree.id} className="animate-fade-in-up">
                 <SareeCard saree={saree} />
               </div>
             ))}
