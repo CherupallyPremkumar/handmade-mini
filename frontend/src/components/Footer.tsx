@@ -104,7 +104,7 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2.5">
               <li className="font-ui text-sm text-cream/60">
-                Gattuppal, Yadadri Bhuvanagiri
+                Gattuppal, Nalgonda District
               </li>
               <li className="font-ui text-sm text-cream/60">
                 Telangana 508253
