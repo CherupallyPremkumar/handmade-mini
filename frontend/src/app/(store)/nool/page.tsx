@@ -100,7 +100,20 @@ export default function NoolPage() {
     : 0;
 
   return (
-    <div className="h-screen bg-bark flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-4rem)] bg-bark flex flex-col overflow-hidden">
+      {/* Tap to unmute overlay */}
+      {muted && products.length > 0 && (
+        <button
+          onClick={() => setMuted(false)}
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-black/70 backdrop-blur-sm text-white font-ui text-sm rounded-full flex items-center gap-2 animate-pulse"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+          </svg>
+          Tap to unmute
+        </button>
+      )}
       {/* Main: Desktop = scrollable video left + sticky details right */}
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT: Vertical scroll reel feed — 9:16 ratio */}
@@ -139,7 +152,7 @@ export default function NoolPage() {
               {/* Mute button */}
               <button
                 onClick={() => setMuted(!muted)}
-                className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-black/40 flex items-center justify-center text-white/80 hover:bg-black/60"
+                className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 border border-white/30"
               >
                 {muted ? (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
