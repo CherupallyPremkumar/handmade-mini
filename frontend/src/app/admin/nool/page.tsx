@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useAuthStore } from '@/lib/auth-store';
 import { formatINR } from '@/lib/format';
-import { api } from '@/lib/api';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -58,8 +56,8 @@ export default function AdminNoolPage() {
       setUploadError('Only .mp4 and .webm allowed');
       return;
     }
-    if (file.size > 50 * 1024 * 1024) {
-      setUploadError('Max 50MB');
+    if (file.size > 100 * 1024 * 1024) {
+      setUploadError('Max 100MB');
       return;
     }
 
@@ -67,12 +65,26 @@ export default function AdminNoolPage() {
     setUploadError('');
 
     try {
-      const result = await api.videos.upload(selectedProductId, file);
-      if (result.success) {
-        fetchProducts();
-      } else {
-        setUploadError(result.errors?.[0]?.description || 'Upload failed');
-      }
+      // 1. Get presigned URL from backend
+      const presignRes = await fetch(`${API}/api/admin/media/presign-video`, {
+        method: 'POST', credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: selectedProductId, contentType: file.type, filename: file.name }),
+      });
+      if (!presignRes.ok) { setUploadError('Failed to prepare upload'); return; }
+      const { uploadUrl, cdnUrl } = await presignRes.json();
+
+      // 2. Upload directly to R2 (browser → R2, bypasses backend)
+      await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+
+      // 3. Confirm upload to backend
+      await fetch(`${API}/api/admin/media/confirm-video`, {
+        method: 'POST', credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: selectedProductId, cdnUrl }),
+      });
+
+      fetchProducts();
     } catch (e) {
       setUploadError('Upload failed');
     } finally {
