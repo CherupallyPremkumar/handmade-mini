@@ -58,23 +58,6 @@ export default function SareesPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Page header */}
-      <div className="bg-bark py-12 sm:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-px bg-gold" />
-            <span className="font-ui text-xs tracking-[0.2em] uppercase text-gold">
-              Our Collection
-            </span>
-          </div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-cream">
-            Pochampally Sarees
-          </h1>
-          <p className="mt-2 font-body text-base text-cream/50 max-w-lg">
-            Browse our curated collection of authentic handwoven sarees
-          </p>
-        </div>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="lg:grid lg:grid-cols-[240px_1fr] lg:gap-10">
