@@ -45,6 +45,8 @@ const FIELDS: Record<string, FieldMeta> = {
   order_cancellation_hours: { label: 'Cancellation Window (hours)', type: 'number', section: 'order' },
   max_pending_orders: { label: 'Max Pending Orders', type: 'number', section: 'order' },
 
+  max_banners: { label: 'Max Banners Allowed', type: 'number', section: 'display' },
+  banner_scroll_seconds: { label: 'Banner Auto-Scroll (seconds)', type: 'number', section: 'display' },
   products_per_page: { label: 'Products Per Page', type: 'number', section: 'display' },
   featured_products_count: { label: 'Featured Products on Home', type: 'number', section: 'display' },
   show_out_of_stock: { label: 'Show Out-of-Stock Products', type: 'boolean', section: 'display' },

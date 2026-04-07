@@ -54,17 +54,19 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeBanner, setActiveBanner] = useState(0);
+  const [scrollSeconds, setScrollSeconds] = useState(5);
 
   const loadAll = useCallback(() => {
     setLoading(true);
     setError(false);
 
     Promise.all([
-      fetch(`${API}/api/cms/banners`).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${API}/api/cms/banners`).then(r => r.ok ? r.json() : { banners: [], scrollSeconds: 5 }).catch(() => ({ banners: [], scrollSeconds: 5 })),
       fetch(`${API}/api/cms/categories/home`).then(r => r.ok ? r.json() : []).catch(() => []),
       api.sarees.list(),
-    ]).then(([bannerData, catData, sareeRes]) => {
-      setBanners(bannerData);
+    ]).then(([bannerResp, catData, sareeRes]) => {
+      setBanners(bannerResp.banners || []);
+      setScrollSeconds(bannerResp.scrollSeconds || 5);
       setCategories(catData);
       if (sareeRes.success && sareeRes.data?.length > 0) {
         setFeatured(sareeRes.data.slice(0, 4));
@@ -77,12 +79,13 @@ export default function HomePage() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // Auto-rotate banners
+  // Auto-rotate banners at admin-configured interval
   useEffect(() => {
     if (banners.length <= 1) return;
-    const timer = setInterval(() => setActiveBanner(prev => (prev + 1) % banners.length), 5000);
+    const ms = scrollSeconds * 1000;
+    const timer = setInterval(() => setActiveBanner(prev => (prev + 1) % banners.length), ms);
     return () => clearInterval(timer);
-  }, [banners.length]);
+  }, [banners.length, scrollSeconds]);
 
   const currentBanner = banners[activeBanner];
 
