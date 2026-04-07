@@ -65,15 +65,8 @@ export const useAuthStore = create<AuthState>()(
           throw new Error(err?.error || err?.message || 'Registration failed');
         }
 
-        const data = await res.json();
-        const user: AuthUser = {
-          name: data.name || name,
-          email: data.email || email,
-          role: data.role || 'CUSTOMER',
-          emailVerified: data.emailVerified ?? false,
-        };
-
-        set({ user, isLoggedIn: true, isAdmin: user.role === 'ADMIN' });
+        // Don't log in — user must verify email first, then login
+        await res.json();
       },
 
       setEmailVerified: () => {

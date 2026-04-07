@@ -18,7 +18,7 @@ export default function RegisterPage() {
   const [registered, setRegistered] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn && useAuthStore.getState().user?.emailVerified) {
+    if (isLoggedIn) {
       router.replace('/');
     }
   }, [isLoggedIn, router]);
