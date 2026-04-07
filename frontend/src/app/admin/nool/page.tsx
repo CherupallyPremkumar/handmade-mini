@@ -174,26 +174,50 @@ export default function AdminNoolPage() {
 
       {loading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => <div key={i} className="animate-pulse bg-cream-deep/50 h-20 rounded" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="animate-pulse bg-cream-deep/50 h-20 rounded-xl" />)}
         </div>
       ) : (
         <>
+          {/* Stats summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+            <div className="bg-white rounded-xl p-4 border border-cream-deep/60 shadow-sm">
+              <p className="font-ui text-[10px] uppercase tracking-wider text-bark-light/60 mb-1">Total Products</p>
+              <p className="font-display text-xl font-bold text-bark">{products.length}</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 border border-cream-deep/60 shadow-sm">
+              <div className="flex items-center justify-between mb-1">
+                <p className="font-ui text-[10px] uppercase tracking-wider text-bark-light/60">With Video</p>
+                <div className="w-6 h-6 rounded-md bg-sage/10 flex items-center justify-center">
+                  <svg className="w-3 h-3 text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                </div>
+              </div>
+              <p className="font-display text-xl font-bold text-sage">{withVideo.length}</p>
+            </div>
+            <div className={`rounded-xl p-4 border shadow-sm ${withoutVideo.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-cream-deep/60'}`}>
+              <div className="flex items-center justify-between mb-1">
+                <p className="font-ui text-[10px] uppercase tracking-wider text-bark-light/60">Missing Video</p>
+                {withoutVideo.length > 0 && <div className="w-6 h-6 rounded-md bg-red-100 flex items-center justify-center"><svg className="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg></div>}
+              </div>
+              <p className={`font-display text-xl font-bold ${withoutVideo.length > 0 ? 'text-red-600' : 'text-bark'}`}>{withoutVideo.length}</p>
+            </div>
+          </div>
+
           {withVideo.length > 0 && (
             <div className="mb-8">
               <h2 className="font-ui text-xs font-semibold tracking-wider uppercase text-sage mb-3">
                 Products with Nool Video ({withVideo.length})
               </h2>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {withVideo.map((p) => (
-                  <div key={p.id} className="bg-white border border-cream-deep/60 p-4 flex items-center gap-4">
-                    <div className="w-16 h-20 bg-bark rounded overflow-hidden shrink-0">
+                  <div key={p.id} className="bg-white rounded-xl border border-cream-deep/60 shadow-sm p-4 flex items-center gap-4">
+                    <div className="w-16 h-20 bg-bark rounded-lg overflow-hidden shrink-0">
                       <video src={p.videoUrl!} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-ui text-sm font-medium text-bark truncate">{p.name}</p>
                       <p className="font-ui text-xs text-bark-light mt-0.5">{formatINR(p.sellingPrice)}</p>
                     </div>
-                    <button onClick={() => { openUpload(p); setTimeout(() => fileInputRef.current?.click(), 100); }} className="px-3 py-1.5 font-ui text-xs font-medium text-bark-light border border-cream-deep hover:border-maroon hover:text-maroon transition-colors rounded">
+                    <button onClick={() => { openUpload(p); setTimeout(() => fileInputRef.current?.click(), 100); }} className="px-3 py-1.5 font-ui text-xs font-medium text-bark-light border border-cream-deep hover:border-maroon hover:text-maroon transition-colors rounded-lg">
                       Replace
                     </button>
                   </div>
@@ -207,10 +231,10 @@ export default function AdminNoolPage() {
               <h2 className="font-ui text-xs font-semibold tracking-wider uppercase text-terracotta mb-3">
                 Missing Nool Video ({withoutVideo.length})
               </h2>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {withoutVideo.map((p) => (
-                  <div key={p.id} className="bg-white border border-red-100 p-4 flex items-center gap-4">
-                    <div className="w-16 h-20 bg-cream-warm border border-cream-deep/40 flex items-center justify-center shrink-0">
+                  <div key={p.id} className="bg-white rounded-xl border border-red-100 shadow-sm p-4 flex items-center gap-4">
+                    <div className="w-16 h-20 bg-cream-warm rounded-lg border border-cream-deep/40 flex items-center justify-center shrink-0">
                       <svg className="w-6 h-6 text-bark-light/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
@@ -220,7 +244,7 @@ export default function AdminNoolPage() {
                       <p className="font-ui text-xs text-bark-light mt-0.5">{formatINR(p.sellingPrice)}</p>
                       <p className="font-ui text-xs text-terracotta mt-0.5">No video uploaded</p>
                     </div>
-                    <button onClick={() => { openUpload(p); setTimeout(() => fileInputRef.current?.click(), 100); }} className="px-3 py-1.5 font-ui text-xs font-medium bg-maroon/5 text-maroon border border-maroon/20 hover:bg-maroon/10 transition-colors rounded">
+                    <button onClick={() => { openUpload(p); setTimeout(() => fileInputRef.current?.click(), 100); }} className="px-3 py-1.5 font-ui text-xs font-medium bg-maroon/5 text-maroon border border-maroon/20 hover:bg-maroon/10 transition-colors rounded-lg">
                       Upload Video
                     </button>
                   </div>
@@ -235,7 +259,7 @@ export default function AdminNoolPage() {
       {upload && upload.status !== 'selecting' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-bark/60 backdrop-blur-sm" />
-          <div className="relative bg-cream w-full max-w-md p-6 rounded-lg shadow-xl animate-fade-in-up">
+          <div className="relative bg-cream w-full max-w-md p-6 rounded-2xl shadow-2xl animate-fade-in-up">
 
             {/* Header */}
             <div className="flex items-start gap-3 mb-5">
@@ -251,7 +275,7 @@ export default function AdminNoolPage() {
                 <p className="font-ui text-xs text-bark-light truncate mt-0.5">{upload.productName}</p>
               </div>
               {(upload.status === 'done' || upload.status === 'error') && (
-                <button onClick={() => { setUpload(null); fetchProducts(); }} className="p-1 text-bark-light hover:text-bark">
+                <button onClick={() => { setUpload(null); fetchProducts(); }} className="p-1 text-bark-light hover:text-bark rounded-lg">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -260,7 +284,7 @@ export default function AdminNoolPage() {
             </div>
 
             {/* File info */}
-            <div className="flex items-center gap-3 p-3 bg-cream-warm rounded mb-4">
+            <div className="flex items-center gap-3 p-3 bg-cream-warm rounded-lg mb-4">
               <svg className="w-8 h-8 text-bark-light/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
               </svg>
@@ -311,7 +335,7 @@ export default function AdminNoolPage() {
                 <p className="font-ui text-sm text-red-600">{upload.error}</p>
                 <button
                   onClick={() => { setUpload(null); }}
-                  className="mt-3 px-4 py-1.5 font-ui text-xs bg-bark text-cream rounded hover:bg-bark/80"
+                  className="mt-3 px-4 py-1.5 font-ui text-xs bg-bark text-cream rounded-lg hover:bg-bark/80"
                 >
                   Close
                 </button>

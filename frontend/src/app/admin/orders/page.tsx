@@ -122,6 +122,11 @@ export default function AdminOrdersPage() {
     }
   }
 
+  const totalOrders = orders.length;
+  const paidCount = orders.filter((o) => o.status === 'PAID').length;
+  const shippedCount = orders.filter((o) => o.status === 'SHIPPED').length;
+  const deliveredCount = orders.filter((o) => o.status === 'DELIVERED').length;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -129,7 +134,7 @@ export default function AdminOrdersPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="input-field !w-auto !py-1.5 !px-3 !text-xs"
+          className="input-field rounded-lg !w-auto !py-1.5 !px-3 !text-xs"
         >
           <option value="">All Orders</option>
           <option value="PLACED">Placed</option>
@@ -143,254 +148,277 @@ export default function AdminOrdersPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse bg-cream-deep/50 h-20 rounded" />
+            <div key={i} className="animate-pulse bg-cream-deep/50 h-20 rounded-xl" />
           ))}
         </div>
       ) : orders.length === 0 ? (
-        <div className="text-center py-20 bg-white border border-cream-deep/60">
+        <div className="text-center py-20 bg-white rounded-xl border border-cream-deep/60 shadow-sm">
           <p className="font-body text-bark-light">No orders found.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {orders.map((order) => {
-            const expanded = expandedId === order.id;
-            const nextStatuses = NEXT_STATUS[order.status] || [];
+        <>
+          {/* Summary stat cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div className="bg-white rounded-xl p-4 border border-cream-deep/60 shadow-sm">
+              <p className="font-ui text-[10px] uppercase tracking-wider text-bark-light/60 mb-1">Total Orders</p>
+              <p className="font-display text-xl font-bold text-bark">{totalOrders}</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 border border-cream-deep/60 shadow-sm">
+              <p className="font-ui text-[10px] uppercase tracking-wider text-bark-light/60 mb-1">Paid</p>
+              <p className="font-display text-xl font-bold text-bark">{paidCount}</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 border border-cream-deep/60 shadow-sm">
+              <p className="font-ui text-[10px] uppercase tracking-wider text-bark-light/60 mb-1">Shipped</p>
+              <p className="font-display text-xl font-bold text-bark">{shippedCount}</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 border border-cream-deep/60 shadow-sm">
+              <p className="font-ui text-[10px] uppercase tracking-wider text-bark-light/60 mb-1">Delivered</p>
+              <p className="font-display text-xl font-bold text-bark">{deliveredCount}</p>
+            </div>
+          </div>
 
-            return (
-              <div
-                key={order.id}
-                className="bg-white border border-cream-deep/60 overflow-hidden"
-              >
-                {/* Row */}
-                <button
-                  onClick={() => setExpandedId(expanded ? null : order.id)}
-                  className="w-full px-5 py-4 flex items-center gap-4 text-left hover:bg-cream-warm/30 transition-colors"
+          {/* Order list */}
+          <div className="space-y-4">
+            {orders.map((order) => {
+              const expanded = expandedId === order.id;
+              const nextStatuses = NEXT_STATUS[order.status] || [];
+
+              return (
+                <div
+                  key={order.id}
+                  className="bg-white rounded-xl border border-cream-deep/60 shadow-sm overflow-hidden"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <p className="font-ui text-sm font-semibold text-bark">
-                        {order.orderNumber}
-                      </p>
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-full font-ui text-[11px] font-medium ${STATUS_COLORS[order.status] || 'bg-gray-50 text-gray-600'}`}
-                      >
-                        {order.status}
-                      </span>
-                    </div>
-                    <p className="font-ui text-xs text-bark-light">
-                      {order.customerName} &middot; {order.shippingAddress.city} &middot;{' '}
-                      {new Date(order.createdTime).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </p>
-                  </div>
-
-                  <p className="font-ui text-sm font-semibold text-bark shrink-0">
-                    {formatINR(order.totalAmount)}
-                  </p>
-
-                  <svg
-                    className={`w-5 h-5 text-bark-light transition-transform ${expanded ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                  {/* Row */}
+                  <button
+                    onClick={() => setExpandedId(expanded ? null : order.id)}
+                    className="w-full px-5 py-4 flex items-center gap-4 text-left hover:bg-cream-warm/30 transition-colors"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {/* Expanded */}
-                {expanded && (
-                  <div className="border-t border-cream-deep/40 animate-fade-in">
-                    <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* Left: Timeline + Items */}
-                      <div>
-                        <h4 className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-3">
-                          Order Status
-                        </h4>
-                        <StatusTimeline currentStatus={order.status as OrderStatus} />
-
-                        <h4 className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-3 mt-6">
-                          Items
-                        </h4>
-                        <div className="space-y-2">
-                          {order.items.map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex justify-between py-1.5 border-b border-cream-deep/20 last:border-0"
-                            >
-                              <div>
-                                <p className="font-ui text-sm text-bark">
-                                  {item.productName}
-                                </p>
-                                <p className="font-ui text-xs text-bark-light">
-                                  Qty: {item.quantity} &times; {formatINR(item.unitPrice)}
-                                </p>
-                              </div>
-                              <p className="font-ui text-sm font-medium text-bark">
-                                {formatINR(item.totalPrice)}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <p className="font-ui text-sm font-semibold text-bark">
+                          {order.orderNumber}
+                        </p>
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded-full font-ui text-[11px] font-medium ${STATUS_COLORS[order.status] || 'bg-gray-50 text-gray-600'}`}
+                        >
+                          {order.status}
+                        </span>
                       </div>
+                      <p className="font-ui text-xs text-bark-light">
+                        {order.customerName} &middot; {order.shippingAddress.city} &middot;{' '}
+                        {new Date(order.createdTime).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
 
-                      {/* Right: Customer + Payment + Actions */}
-                      <div>
-                        {/* Customer */}
-                        <h4 className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-3">
-                          Customer
-                        </h4>
-                        <div className="p-3 bg-cream-warm mb-4">
-                          <p className="font-ui text-sm text-bark leading-relaxed">
-                            <span className="font-semibold">{order.customerName}</span>
-                            <br />
-                            {order.customerPhone}
-                            <br />
-                            {order.customerEmail}
-                          </p>
-                        </div>
+                    <p className="font-ui text-sm font-semibold text-bark shrink-0">
+                      {formatINR(order.totalAmount)}
+                    </p>
 
-                        {/* Shipping */}
-                        <h4 className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-3">
-                          Shipping Address
-                        </h4>
-                        <div className="p-3 bg-cream-warm mb-4">
-                          <p className="font-ui text-sm text-bark leading-relaxed">
-                            {order.shippingAddress.line1}
-                            {order.shippingAddress.line2 && (
-                              <>, {order.shippingAddress.line2}</>
-                            )}
-                            <br />
-                            {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.pincode}
-                          </p>
-                        </div>
+                    <svg
+                      className={`w-5 h-5 text-bark-light transition-transform ${expanded ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
 
-                        {/* Payment */}
-                        <h4 className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-3">
-                          Payment
-                        </h4>
-                        <div className="p-3 bg-cream-warm mb-4 space-y-1.5">
-                          <div className="flex justify-between font-ui text-xs">
-                            <span className="text-bark-light">Status</span>
-                            <span className={`font-semibold ${order.paymentStatus === 'captured' ? 'text-green-600' : 'text-amber-600'}`}>
-                              {order.paymentStatus || 'Pending'}
-                            </span>
-                          </div>
-                          {order.razorpayPaymentId && (
-                            <>
-                              <div className="flex justify-between font-ui text-xs">
-                                <span className="text-bark-light">Razorpay ID</span>
-                                <a
-                                  href={`https://dashboard.razorpay.com/app/payments/${order.razorpayPaymentId}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-mono text-blue-600 hover:underline"
-                                >
-                                  {order.razorpayPaymentId}
-                                </a>
+                  {/* Expanded */}
+                  {expanded && (
+                    <div className="border-t border-cream-deep/40 animate-fade-in">
+                      <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Left: Timeline + Items */}
+                        <div>
+                          <h4 className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-3">
+                            Order Status
+                          </h4>
+                          <StatusTimeline currentStatus={order.status as OrderStatus} />
+
+                          <h4 className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-3 mt-6">
+                            Items
+                          </h4>
+                          <div className="space-y-2">
+                            {order.items.map((item) => (
+                              <div
+                                key={item.id}
+                                className="flex justify-between py-1.5 border-b border-cream-deep/20 last:border-0"
+                              >
+                                <div>
+                                  <p className="font-ui text-sm text-bark">
+                                    {item.productName}
+                                  </p>
+                                  <p className="font-ui text-xs text-bark-light">
+                                    Qty: {item.quantity} &times; {formatINR(item.unitPrice)}
+                                  </p>
+                                </div>
+                                <p className="font-ui text-sm font-medium text-bark">
+                                  {formatINR(item.totalPrice)}
+                                </p>
                               </div>
-                            </>
-                          )}
+                            ))}
+                          </div>
                         </div>
 
-                        {/* Tracking input */}
-                        {(order.status === 'PAID') && (
-                          <div className="mb-4">
-                            <label className="input-label">Tracking Number</label>
-                            <input
-                              type="text"
-                              value={trackingInput[order.id] || ''}
-                              onChange={(e) =>
-                                setTrackingInput((prev) => ({
-                                  ...prev,
-                                  [order.id]: e.target.value,
-                                }))
-                              }
-                              placeholder="e.g., DTDC1234567890"
-                              className="input-field"
-                            />
-                          </div>
-                        )}
-
-                        {order.trackingNumber && (
-                          <div className="mb-4 p-3 bg-cream-warm">
-                            <p className="font-ui text-xs text-bark-light/60 uppercase tracking-wider mb-0.5">
-                              Tracking Number
+                        {/* Right: Customer + Payment + Actions */}
+                        <div>
+                          {/* Customer */}
+                          <h4 className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-3">
+                            Customer
+                          </h4>
+                          <div className="p-3 bg-cream-warm rounded-lg mb-4">
+                            <p className="font-ui text-sm text-bark leading-relaxed">
+                              <span className="font-semibold">{order.customerName}</span>
+                              <br />
+                              {order.customerPhone}
+                              <br />
+                              {order.customerEmail}
                             </p>
-                            <a
-                              href={getTrackingUrl(order.trackingNumber)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-ui text-sm font-semibold text-blue-600 hover:underline flex items-center gap-1.5"
-                            >
-                              {order.trackingNumber}
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                              </svg>
-                            </a>
                           </div>
-                        )}
 
-                        {/* Status actions */}
-                        {nextStatuses.length > 0 && (
-                          <div>
-                            <h4 className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-3">
-                              Update Status
-                            </h4>
-                            <div className="flex flex-wrap gap-2">
-                              {nextStatuses.map((ns) => (
-                                <button
-                                  key={ns}
-                                  onClick={() => updateStatus(order.id, ns)}
-                                  disabled={updating === order.id}
-                                  className={`px-3 py-1.5 font-ui text-xs font-medium rounded transition-colors disabled:opacity-50 ${
-                                    ns === 'CANCELLED'
-                                      ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-                                      : 'bg-maroon/5 text-maroon hover:bg-maroon/10 border border-maroon/20'
-                                  }`}
-                                >
-                                  {updating === order.id ? 'Updating...' : ns === 'CANCELLED' ? 'Cancel Order' : `Mark as ${ns}`}
-                                </button>
-                              ))}
+                          {/* Shipping */}
+                          <h4 className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-3">
+                            Shipping Address
+                          </h4>
+                          <div className="p-3 bg-cream-warm rounded-lg mb-4">
+                            <p className="font-ui text-sm text-bark leading-relaxed">
+                              {order.shippingAddress.line1}
+                              {order.shippingAddress.line2 && (
+                                <>, {order.shippingAddress.line2}</>
+                              )}
+                              <br />
+                              {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.pincode}
+                            </p>
+                          </div>
+
+                          {/* Payment */}
+                          <h4 className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-3">
+                            Payment
+                          </h4>
+                          <div className="p-3 bg-cream-warm rounded-lg mb-4 space-y-1.5">
+                            <div className="flex justify-between font-ui text-xs">
+                              <span className="text-bark-light">Status</span>
+                              <span className={`font-semibold ${order.paymentStatus === 'captured' ? 'text-green-600' : 'text-amber-600'}`}>
+                                {order.paymentStatus || 'Pending'}
+                              </span>
                             </div>
+                            {order.razorpayPaymentId && (
+                              <>
+                                <div className="flex justify-between font-ui text-xs">
+                                  <span className="text-bark-light">Razorpay ID</span>
+                                  <a
+                                    href={`https://dashboard.razorpay.com/app/payments/${order.razorpayPaymentId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-mono text-blue-600 hover:underline"
+                                  >
+                                    {order.razorpayPaymentId}
+                                  </a>
+                                </div>
+                              </>
+                            )}
                           </div>
-                        )}
 
-                        {/* Summary */}
-                        <div className="mt-4 pt-4 border-t border-cream-deep/40 space-y-1">
-                          <div className="flex justify-between font-ui text-xs text-bark-light">
-                            <span>Subtotal</span>
-                            <span>{formatINR(order.subtotal)}</span>
-                          </div>
-                          <div className="flex justify-between font-ui text-xs text-bark-light">
-                            <span>GST</span>
-                            <span>{formatINR(order.gstAmount)}</span>
-                          </div>
-                          <div className="flex justify-between font-ui text-xs text-bark-light">
-                            <span>Shipping</span>
-                            <span>{order.shippingCost === 0 ? 'Free' : formatINR(order.shippingCost)}</span>
-                          </div>
-                          <div className="flex justify-between font-ui text-sm font-semibold text-bark pt-1 border-t border-cream-deep/30">
-                            <span>Total</span>
-                            <span>{formatINR(order.totalAmount)}</span>
+                          {/* Tracking input */}
+                          {(order.status === 'PAID') && (
+                            <div className="mb-4">
+                              <label className="input-label">Tracking Number</label>
+                              <input
+                                type="text"
+                                value={trackingInput[order.id] || ''}
+                                onChange={(e) =>
+                                  setTrackingInput((prev) => ({
+                                    ...prev,
+                                    [order.id]: e.target.value,
+                                  }))
+                                }
+                                placeholder="e.g., DTDC1234567890"
+                                className="input-field"
+                              />
+                            </div>
+                          )}
+
+                          {order.trackingNumber && (
+                            <div className="mb-4 p-3 bg-cream-warm rounded-lg">
+                              <p className="font-ui text-xs text-bark-light/60 uppercase tracking-wider mb-0.5">
+                                Tracking Number
+                              </p>
+                              <a
+                                href={getTrackingUrl(order.trackingNumber)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-ui text-sm font-semibold text-blue-600 hover:underline flex items-center gap-1.5"
+                              >
+                                {order.trackingNumber}
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </a>
+                            </div>
+                          )}
+
+                          {/* Status actions */}
+                          {nextStatuses.length > 0 && (
+                            <div>
+                              <h4 className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-3">
+                                Update Status
+                              </h4>
+                              <div className="flex flex-wrap gap-2">
+                                {nextStatuses.map((ns) => (
+                                  <button
+                                    key={ns}
+                                    onClick={() => updateStatus(order.id, ns)}
+                                    disabled={updating === order.id}
+                                    className={`px-3 py-1.5 font-ui text-xs font-medium rounded transition-colors disabled:opacity-50 ${
+                                      ns === 'CANCELLED'
+                                        ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                                        : 'bg-maroon/5 text-maroon hover:bg-maroon/10 border border-maroon/20'
+                                    }`}
+                                  >
+                                    {updating === order.id ? 'Updating...' : ns === 'CANCELLED' ? 'Cancel Order' : `Mark as ${ns}`}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Summary */}
+                          <div className="mt-4 pt-4 border-t border-cream-deep/40 space-y-1">
+                            <div className="flex justify-between font-ui text-xs text-bark-light">
+                              <span>Subtotal</span>
+                              <span>{formatINR(order.subtotal)}</span>
+                            </div>
+                            <div className="flex justify-between font-ui text-xs text-bark-light">
+                              <span>GST</span>
+                              <span>{formatINR(order.gstAmount)}</span>
+                            </div>
+                            <div className="flex justify-between font-ui text-xs text-bark-light">
+                              <span>Shipping</span>
+                              <span>{order.shippingCost === 0 ? 'Free' : formatINR(order.shippingCost)}</span>
+                            </div>
+                            <div className="flex justify-between font-ui text-sm font-semibold text-bark pt-1 border-t border-cream-deep/30">
+                              <span>Total</span>
+                              <span>{formatINR(order.totalAmount)}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

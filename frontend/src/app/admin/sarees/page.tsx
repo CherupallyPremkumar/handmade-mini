@@ -207,74 +207,79 @@ export default function AdminProductsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-2xl font-bold text-bark">Products</h1>
-        <button onClick={openAdd} className="btn-primary">+ Add Product</button>
+        <div>
+          <h1 className="font-display text-2xl font-bold text-bark">Products</h1>
+          <p className="font-ui text-sm text-bark-light/60 mt-0.5">{products.length} product{products.length !== 1 ? 's' : ''} in catalog</p>
+        </div>
+        <button onClick={openAdd} className="btn-primary rounded-lg">+ Add Product</button>
       </div>
 
       {loading ? (
-        <div className="space-y-3">{[1,2,3].map((i) => <div key={i} className="animate-pulse bg-cream-deep/50 h-16 rounded" />)}</div>
+        <div className="space-y-3">{[1,2,3].map((i) => <div key={i} className="animate-pulse bg-cream-deep/50 h-16 rounded-xl" />)}</div>
       ) : (
-        <div className="bg-white border border-cream-deep/60 overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-cream-deep/40">
-                <th className="text-left px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Product</th>
-                <th className="text-left px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Type</th>
-                <th className="text-right px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Price</th>
-                <th className="text-center px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Stock</th>
-                <th className="text-center px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Media</th>
-                <th className="text-right px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((p) => {
-                const imgCount = p.images?.length || 0;
-                const hasVideo = !!p.videoUrl;
-                const mediaOk = imgCount >= 3 && hasVideo;
-                return (
-                  <tr key={p.id} className="border-b border-cream-deep/20 last:border-0 hover:bg-cream-warm/50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-12 bg-cream-warm border border-cream-deep/40 overflow-hidden shrink-0">
-                          {imgCount > 0 ? <img src={p.images[0]} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-bark-light/20 text-xs">No img</div>}
+        <div className="bg-white rounded-xl border border-cream-deep/60 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-cream-deep/40 bg-cream-warm/30">
+                  <th className="text-left px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Product</th>
+                  <th className="text-left px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Type</th>
+                  <th className="text-right px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Price</th>
+                  <th className="text-center px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Stock</th>
+                  <th className="text-center px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Media</th>
+                  <th className="text-right px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((p) => {
+                  const imgCount = p.images?.length || 0;
+                  const hasVideo = !!p.videoUrl;
+                  const mediaOk = imgCount >= 3 && hasVideo;
+                  return (
+                    <tr key={p.id} className="border-b border-cream-deep/20 last:border-0 hover:bg-cream-warm/50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-12 bg-cream-warm rounded-lg border border-cream-deep/40 overflow-hidden shrink-0">
+                            {imgCount > 0 ? <img src={p.images[0]} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-bark-light/20 text-xs">No img</div>}
+                          </div>
+                          <div>
+                            <p className="font-ui text-sm font-medium text-bark">{p.name}</p>
+                            <p className="font-ui text-xs text-bark-light/60">{p.color} &middot; {p.lengthMeters}m</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-ui text-sm font-medium text-bark">{p.name}</p>
-                          <p className="font-ui text-xs text-bark-light/60">{p.color} &middot; {p.lengthMeters}m</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-ui text-sm text-bark">{formatFabric(p.fabric)}</p>
+                        <p className="font-ui text-xs text-bark-light/60">{formatWeave(p.weaveType)}</p>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <p className="font-ui text-sm font-semibold text-maroon">{formatINR(p.sellingPrice)}</p>
+                        {p.mrp > p.sellingPrice && <p className="font-ui text-xs text-bark-light/50 line-through">{formatINR(p.mrp)}</p>}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${p.stock <= 3 ? 'bg-red-50 text-terracotta' : 'bg-sage/10 text-sage'}`}>{p.stock}</span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${mediaOk ? 'bg-sage/10 text-sage' : 'bg-red-50 text-terracotta'}`}>
+                          {imgCount}/3 img &middot; {hasVideo ? '1 vid' : '0 vid'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-bark-light hover:text-maroon hover:bg-maroon/5 transition-colors" title="Edit">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          </button>
+                          <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg text-bark-light hover:text-red-500 hover:bg-red-500/5 transition-colors" title="Delete">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-ui text-sm text-bark">{formatFabric(p.fabric)}</p>
-                      <p className="font-ui text-xs text-bark-light/60">{formatWeave(p.weaveType)}</p>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <p className="font-ui text-sm font-semibold text-maroon">{formatINR(p.sellingPrice)}</p>
-                      {p.mrp > p.sellingPrice && <p className="font-ui text-xs text-bark-light/50 line-through">{formatINR(p.mrp)}</p>}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`font-ui text-sm font-medium ${p.stock <= 3 ? 'text-terracotta' : 'text-sage'}`}>{p.stock}</span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className={`font-ui text-xs ${mediaOk ? 'text-sage' : 'text-terracotta'}`}>
-                        {imgCount}/3 img &middot; {hasVideo ? '1 vid' : '0 vid'}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(p)} className="p-1.5 text-bark-light hover:text-maroon" title="Edit">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                        </button>
-                        <button onClick={() => handleDelete(p.id)} className="p-1.5 text-bark-light hover:text-red-500" title="Delete">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -282,10 +287,10 @@ export default function AdminProductsPage() {
       {modalMode !== 'closed' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-bark/50" onClick={() => setModalMode('closed')} />
-          <div className="relative bg-cream w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+          <div className="relative bg-cream rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-display text-xl font-bold text-bark">{modalMode === 'add' ? 'Add Product' : 'Edit Product'}</h2>
-              <button onClick={() => setModalMode('closed')} className="p-1 text-bark-light hover:text-bark">
+              <button onClick={() => setModalMode('closed')} className="p-1 rounded-full text-bark-light hover:text-bark hover:bg-cream-deep/30 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -406,7 +411,7 @@ export default function AdminProductsPage() {
                   {/* Image grid */}
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-2">
                     {currentImages.map((url, i) => (
-                      <div key={url} className="relative group aspect-[3/4] bg-cream-warm border border-cream-deep/40 overflow-hidden">
+                      <div key={url} className="relative group aspect-[3/4] bg-cream-warm rounded-lg border border-cream-deep/40 overflow-hidden">
                         <img src={url} alt={`Image ${i + 1}`} className="w-full h-full object-cover" />
                         <button
                           onClick={() => handleImageDelete(url)}
@@ -420,7 +425,7 @@ export default function AdminProductsPage() {
                     {currentImages.length < 6 && (
                       <button
                         onClick={() => imageInputRef.current?.click()}
-                        className="aspect-[3/4] border-2 border-dashed border-cream-deep hover:border-gold flex items-center justify-center transition-colors"
+                        className="aspect-[3/4] border-2 border-dashed border-cream-deep hover:border-gold rounded-lg flex items-center justify-center transition-colors"
                       >
                         <span className="text-bark-light/40 text-2xl">+</span>
                       </button>
@@ -441,7 +446,7 @@ export default function AdminProductsPage() {
                     </button>
                   </div>
                   {currentVideo && (
-                    <div className="mt-2 flex items-center gap-3 p-2 bg-cream-warm rounded">
+                    <div className="mt-2 flex items-center gap-3 p-2 bg-cream-warm rounded-lg">
                       <video src={currentVideo} className="w-16 h-20 object-cover rounded" muted />
                       <p className="font-ui text-xs text-bark-light truncate flex-1">{currentVideo}</p>
                     </div>
@@ -450,7 +455,7 @@ export default function AdminProductsPage() {
               )}
 
               {modalMode === 'add' && (
-                <div className="p-3 bg-amber-50 border border-amber-200">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <p className="font-ui text-xs text-amber-800">Save the product first, then edit to add images (min 3) and video (min 1).</p>
                 </div>
               )}
@@ -458,7 +463,7 @@ export default function AdminProductsPage() {
 
             {/* Requirements */}
             {modalMode === 'edit' && (
-              <div className="mt-4 p-3 bg-cream-warm border border-cream-deep/40">
+              <div className="mt-4 p-3 bg-cream-warm border border-cream-deep/40 rounded-lg">
                 <p className="font-ui text-xs font-semibold text-bark mb-1">Requirements:</p>
                 <div className="flex gap-4 font-ui text-xs">
                   <span className={currentImages.length >= 3 ? 'text-sage' : 'text-terracotta'}>
@@ -472,14 +477,14 @@ export default function AdminProductsPage() {
             )}
 
             {saveError && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200">
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-700">{saveError}</p>
               </div>
             )}
 
             <div className="mt-6 flex items-center justify-end gap-3">
-              <button onClick={() => setModalMode('closed')} className="btn-outline">Cancel</button>
-              <button onClick={handleSave} disabled={saving} className="btn-primary">
+              <button onClick={() => setModalMode('closed')} className="btn-outline rounded-lg">Cancel</button>
+              <button onClick={handleSave} disabled={saving} className="btn-primary rounded-lg">
                 {saving ? 'Saving...' : modalMode === 'add' ? 'Create Product' : 'Save Changes'}
               </button>
             </div>
@@ -491,9 +496,9 @@ export default function AdminProductsPage() {
       {videoProductId && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-bark/50" onClick={() => !videoUploading && setVideoProductId(null)} />
-          <div className="relative bg-cream w-full max-w-lg p-6">
+          <div className="relative bg-cream rounded-2xl w-full max-w-lg p-6 shadow-2xl">
             <h2 className="font-display text-lg font-bold text-bark mb-4">Upload Video</h2>
-            <div onClick={() => videoInputRef.current?.click()} className="border-2 border-dashed border-cream-deep hover:border-gold cursor-pointer p-6 text-center">
+            <div onClick={() => videoInputRef.current?.click()} className="border-2 border-dashed border-cream-deep hover:border-gold rounded-xl cursor-pointer p-6 text-center">
               <input ref={videoInputRef} type="file" accept="video/mp4,video/webm" onChange={(e) => {
                 const file = e.target.files?.[0]; if (!file) return;
                 if (file.type !== 'video/mp4' && file.type !== 'video/webm') { setVideoError('Only .mp4/.webm'); return; }
@@ -508,8 +513,8 @@ export default function AdminProductsPage() {
             </div>
             {videoError && <p className="mt-2 font-ui text-xs text-red-600">{videoError}</p>}
             <div className="mt-4 flex justify-end gap-3">
-              <button onClick={() => setVideoProductId(null)} className="btn-outline" disabled={videoUploading}>Cancel</button>
-              <button onClick={handleVideoUpload} className="btn-primary" disabled={!videoFile || videoUploading}>
+              <button onClick={() => setVideoProductId(null)} className="btn-outline rounded-lg" disabled={videoUploading}>Cancel</button>
+              <button onClick={handleVideoUpload} className="btn-primary rounded-lg" disabled={!videoFile || videoUploading}>
                 {videoUploading ? 'Uploading...' : 'Upload'}
               </button>
             </div>
