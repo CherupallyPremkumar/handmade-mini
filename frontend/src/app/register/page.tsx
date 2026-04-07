@@ -15,9 +15,10 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [registered, setRegistered] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && useAuthStore.getState().user?.emailVerified) {
       router.replace('/');
     }
   }, [isLoggedIn, router]);
@@ -50,7 +51,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(name, email, password);
-      // useEffect above handles redirect after state updates
+      setRegistered(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -104,6 +105,46 @@ export default function RegisterPage() {
 
         {/* Card */}
         <div className="bg-white border border-cream-deep/60 p-8 sm:p-10 shadow-sm">
+          {registered ? (
+            <div className="text-center py-4">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-50 flex items-center justify-center">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="font-display text-xl font-bold text-bark mb-2">Check Your Email</h2>
+              <p className="font-ui text-sm text-bark-light/70 mb-4">
+                We&apos;ve sent a verification link to <strong>{email}</strong>. Please click the link to verify your account.
+              </p>
+              <p className="font-ui text-xs text-bark-light/50 mb-6">
+                The link expires in 24 hours. Check your spam folder if you don&apos;t see it.
+              </p>
+              <button
+                onClick={async () => {
+                  try {
+                    await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/auth/resend-verification`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ email }),
+                    });
+                    setError('');
+                    alert('Verification email resent!');
+                  } catch {
+                    setError('Failed to resend email');
+                  }
+                }}
+                className="text-maroon font-medium text-sm hover:text-maroon-deep transition-colors"
+              >
+                Resend verification email
+              </button>
+              <div className="mt-4">
+                <Link href="/login" className="btn-primary inline-block px-6">
+                  Go to Login
+                </Link>
+              </div>
+            </div>
+          ) : (
+          <>
           <h1 className="font-display text-2xl font-bold text-bark text-center mb-1">
             Create Account
           </h1>
@@ -224,6 +265,8 @@ export default function RegisterPage() {
               </Link>
             </p>
           </div>
+          </>
+          )}
         </div>
 
         {/* Back to store */}

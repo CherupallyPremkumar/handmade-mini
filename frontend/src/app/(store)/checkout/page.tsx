@@ -85,6 +85,42 @@ export default function CheckoutPage() {
     );
   }
 
+  if (user && !user.emailVerified) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-50 flex items-center justify-center">
+          <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h1 className="font-display text-2xl font-bold text-bark mb-2">
+          Verify Your Email
+        </h1>
+        <p className="font-body text-bark-light mb-4">
+          Please verify your email address before placing an order.
+          Check your inbox for a verification link.
+        </p>
+        <button
+          onClick={async () => {
+            try {
+              await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/auth/resend-verification`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email }),
+              });
+              alert('Verification email resent!');
+            } catch {
+              alert('Failed to resend email');
+            }
+          }}
+          className="btn-primary"
+        >
+          Resend Verification Email
+        </button>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">

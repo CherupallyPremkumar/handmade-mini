@@ -7,6 +7,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: 'ADMIN' | 'CUSTOMER';
+  emailVerified: boolean;
 }
 
 interface AuthState {
@@ -16,6 +17,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  setEmailVerified: () => void;
   getAuthHeaders: () => Record<string, string>;
 }
 
@@ -44,6 +46,7 @@ export const useAuthStore = create<AuthState>()(
           name: data.name || email.split('@')[0],
           email: data.email || email,
           role: data.role || 'CUSTOMER',
+          emailVerified: data.emailVerified ?? true,
         };
 
         set({ user, isLoggedIn: true, isAdmin: user.role === 'ADMIN' });
@@ -67,9 +70,16 @@ export const useAuthStore = create<AuthState>()(
           name: data.name || name,
           email: data.email || email,
           role: data.role || 'CUSTOMER',
+          emailVerified: data.emailVerified ?? false,
         };
 
         set({ user, isLoggedIn: true, isAdmin: user.role === 'ADMIN' });
+      },
+
+      setEmailVerified: () => {
+        set((state) => ({
+          user: state.user ? { ...state.user, emailVerified: true } : null,
+        }));
       },
 
       logout: () => {
