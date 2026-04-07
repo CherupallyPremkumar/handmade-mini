@@ -73,7 +73,7 @@ export default function AdminDashboard() {
           <h1 className="font-display text-2xl font-bold text-bark">Dashboard</h1>
           <p className="font-ui text-xs text-bark-light mt-0.5">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
         </div>
-        <Link href="/admin/sarees" className="btn-primary text-sm hidden sm:flex">+ Add Product</Link>
+        <Link href="/admin/sarees?action=add" className="btn-primary text-sm hidden sm:flex">+ Add Product</Link>
       </div>
 
       {/* KPI Cards */}
@@ -162,7 +162,7 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-xl border border-cream-deep/60 shadow-sm p-4">
             <h3 className="font-ui text-xs font-semibold uppercase tracking-wider text-bark-light/60 mb-3">Quick Actions</h3>
             <div className="space-y-2">
-              <Link href="/admin/sarees" className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-cream-warm transition-colors">
+              <Link href="/admin/sarees?action=add" className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-cream-warm transition-colors">
                 <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center"><svg className="w-4 h-4 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg></div>
                 <span className="font-ui text-sm text-bark">Add Product</span>
               </Link>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth-store';
 import { formatINR, formatFabric, formatWeave } from '@/lib/format';
 
@@ -50,6 +51,7 @@ const EMPTY_FORM: ProductForm = {
 
 export default function AdminProductsPage() {
   const { getAuthHeaders } = useAuthStore();
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalMode, setModalMode] = useState<'closed' | 'add' | 'edit'>('closed');
@@ -73,6 +75,12 @@ export default function AdminProductsPage() {
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchProducts(); }, []);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'add' && modalMode === 'closed' && !loading) {
+      openAdd();
+    }
+  }, [searchParams, loading]);
 
   async function fetchProducts() {
     setLoading(true);
@@ -116,7 +124,8 @@ export default function AdminProductsPage() {
       const url = modalMode === 'add' ? `${API}/api/admin/products` : `${API}/api/admin/products/${editId}`;
       const method = modalMode === 'add' ? 'POST' : 'PUT';
       const res = await fetch(url, {
-        method, headers: { 'Content-Type': 'application/json' },
+        method, credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, isActive: true }),
       });
       if (res.ok) { setModalMode('closed'); fetchProducts(); }
