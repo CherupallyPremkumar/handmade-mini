@@ -19,6 +19,8 @@ server:
 
 app:
   jwt-secret: bdd-test-secret-key-256-bits-long-enough-for-hmac-sha512-algorithm
+  cors-origins: http://localhost:3000
+  frontend-url: http://localhost:3000
 
 razorpay:
   key-id: rzp_test_fake
