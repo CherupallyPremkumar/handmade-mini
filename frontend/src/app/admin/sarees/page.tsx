@@ -85,7 +85,7 @@ export default function AdminProductsPage() {
   async function fetchProducts() {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/products`);
+      const res = await fetch(`${API}/api/admin/products`, { credentials: 'include' as RequestCredentials });
       if (res.ok) setProducts(await res.json());
     } catch {} finally { setLoading(false); }
   }
@@ -131,6 +131,13 @@ export default function AdminProductsPage() {
       if (res.ok) { setModalMode('closed'); fetchProducts(); }
       else { const err = await res.json().catch(() => null); setSaveError(err?.error || 'Failed to save'); }
     } catch { setSaveError('Network error'); } finally { setSaving(false); }
+  }
+
+  async function handleToggleActive(id: string) {
+    await fetch(`${API}/api/admin/products/${id}/toggle-active`, {
+      method: 'PATCH', credentials: 'include' as RequestCredentials,
+    });
+    fetchProducts();
   }
 
   async function handleDelete(id: string) {
@@ -236,6 +243,7 @@ export default function AdminProductsPage() {
                   <th className="text-right px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Price</th>
                   <th className="text-center px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Stock</th>
                   <th className="text-center px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Media</th>
+                  <th className="text-center px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Status</th>
                   <th className="text-right px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Actions</th>
                 </tr>
               </thead>
@@ -245,7 +253,7 @@ export default function AdminProductsPage() {
                   const hasVideo = !!p.videoUrl;
                   const mediaOk = imgCount >= 3 && hasVideo;
                   return (
-                    <tr key={p.id} className="border-b border-cream-deep/20 last:border-0 hover:bg-cream-warm/50">
+                    <tr key={p.id} className={`border-b border-cream-deep/20 last:border-0 hover:bg-cream-warm/50 ${!p.isActive ? 'opacity-60' : ''}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-12 bg-cream-warm rounded-lg border border-cream-deep/40 overflow-hidden shrink-0">
@@ -272,6 +280,15 @@ export default function AdminProductsPage() {
                         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${mediaOk ? 'bg-sage/10 text-sage' : 'bg-red-50 text-terracotta'}`}>
                           {imgCount}/3 img &middot; {hasVideo ? '1 vid' : '0 vid'}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => handleToggleActive(p.id)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${p.isActive ? 'bg-sage' : 'bg-bark-light/30'}`}
+                          title={p.isActive ? 'Active — click to deactivate' : 'Inactive — click to activate'}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${p.isActive ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
