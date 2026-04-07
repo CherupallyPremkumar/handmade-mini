@@ -91,7 +91,7 @@ function mapProductToSaree(p: any): Saree {
     mrpInPaisa: p.mrp ?? p.mrpInPaisa ?? 0,
     fabric: p.fabric ?? 'SILK',
     weave: p.weaveType ?? p.weave ?? 'IKAT',
-    color: p.color ?? '',
+    color: p.bodyColor ?? p.color ?? '',
     lengthInMeters: p.lengthMeters ?? p.lengthInMeters ?? 6.0,
     blousePieceIncluded: p.blousePiece ?? p.blousePieceIncluded ?? false,
     images: p.images ?? [],
