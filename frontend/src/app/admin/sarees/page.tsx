@@ -26,6 +26,19 @@ interface Product {
   hsnCode: string;
   gstPct: number;
   isActive: boolean;
+  weightGrams: number | null;
+  widthInches: number | null;
+  blouseLengthMeters: number | null;
+  occasion: string;
+  workType: string;
+  pattern: string;
+  bodyColor: string;
+  borderColor: string;
+  palluColor: string;
+  careInstructions: string;
+  certification: string;
+  sku: string;
+  tags: string;
 }
 
 interface ProductForm {
@@ -43,6 +56,19 @@ interface ProductForm {
   stock: number;
   gstPct: number;
   hsnCode: string;
+  weightGrams: number;
+  widthInches: number;
+  blouseLengthMeters: number;
+  occasion: string;
+  workType: string;
+  pattern: string;
+  bodyColor: string;
+  borderColor: string;
+  palluColor: string;
+  careInstructions: string;
+  certification: string;
+  sku: string;
+  tags: string;
 }
 
 interface ProductRules {
@@ -56,6 +82,10 @@ const EMPTY_FORM: ProductForm = {
   name: '', description: '', secondaryDescription: '', category: 'SAREE', fabric: 'SILK', weaveType: 'IKAT',
   color: '', lengthMeters: 6.3, blousePiece: true, mrp: 0, sellingPrice: 0,
   stock: 0, gstPct: 5, hsnCode: '50079090',
+  weightGrams: 0, widthInches: 44, blouseLengthMeters: 0.8,
+  occasion: '', workType: '', pattern: '',
+  bodyColor: '', borderColor: '', palluColor: '',
+  careInstructions: 'Dry clean recommended', certification: '', sku: '', tags: '',
 };
 
 export default function AdminProductsPage() {
@@ -118,6 +148,12 @@ export default function AdminProductsPage() {
       lengthMeters: p.lengthMeters, blousePiece: p.blousePiece,
       mrp: p.mrp, sellingPrice: p.sellingPrice, stock: p.stock,
       gstPct: p.gstPct, hsnCode: p.hsnCode,
+      weightGrams: p.weightGrams || 0, widthInches: p.widthInches || 44,
+      blouseLengthMeters: p.blouseLengthMeters || 0.8,
+      occasion: p.occasion || '', workType: p.workType || '', pattern: p.pattern || '',
+      bodyColor: p.bodyColor || '', borderColor: p.borderColor || '', palluColor: p.palluColor || '',
+      careInstructions: p.careInstructions || '', certification: p.certification || '',
+      sku: p.sku || '', tags: p.tags || '',
     });
     setPriceDisplay(String(p.sellingPrice / 100));
     setMrpDisplay(String(p.mrp / 100));
@@ -451,6 +487,114 @@ export default function AdminProductsPage() {
                     <input type="checkbox" checked={form.blousePiece} onChange={(e) => setForm((f) => ({ ...f, blousePiece: e.target.checked }))} className="w-4 h-4 accent-maroon" />
                     Blouse included
                   </label>
+                </div>
+              </div>
+
+              {/* ═══ Physical Details ═══ */}
+              <div className="border-t border-cream-deep pt-5 mt-2">
+                <p className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-4">Physical Details</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="input-label">Weight (grams)</label>
+                    <input type="number" value={form.weightGrams || ''} onChange={(e) => setForm((f) => ({ ...f, weightGrams: parseInt(e.target.value || '0', 10) }))} className="input-field" placeholder="450" />
+                  </div>
+                  <div>
+                    <label className="input-label">Width (inches)</label>
+                    <input type="number" step="0.5" value={form.widthInches || ''} onChange={(e) => setForm((f) => ({ ...f, widthInches: parseFloat(e.target.value || '0') }))} className="input-field" placeholder="44" />
+                  </div>
+                  <div>
+                    <label className="input-label">Blouse Length (m)</label>
+                    <input type="number" step="0.1" value={form.blouseLengthMeters || ''} onChange={(e) => setForm((f) => ({ ...f, blouseLengthMeters: parseFloat(e.target.value || '0') }))} className="input-field" placeholder="0.8" />
+                  </div>
+                </div>
+              </div>
+
+              {/* ═══ Colors Breakdown ═══ */}
+              <div className="border-t border-cream-deep pt-5">
+                <p className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-4">Color Details</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="input-label">Body Color</label>
+                    <input type="text" value={form.bodyColor} onChange={(e) => setForm((f) => ({ ...f, bodyColor: e.target.value }))} className="input-field" placeholder="Royal Blue" />
+                  </div>
+                  <div>
+                    <label className="input-label">Border Color</label>
+                    <input type="text" value={form.borderColor} onChange={(e) => setForm((f) => ({ ...f, borderColor: e.target.value }))} className="input-field" placeholder="Gold Zari" />
+                  </div>
+                  <div>
+                    <label className="input-label">Pallu Color</label>
+                    <input type="text" value={form.palluColor} onChange={(e) => setForm((f) => ({ ...f, palluColor: e.target.value }))} className="input-field" placeholder="Magenta" />
+                  </div>
+                </div>
+              </div>
+
+              {/* ═══ Classification ═══ */}
+              <div className="border-t border-cream-deep pt-5">
+                <p className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-4">Classification</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="input-label">Occasion</label>
+                    <select value={form.occasion} onChange={(e) => setForm((f) => ({ ...f, occasion: e.target.value }))} className="input-field">
+                      <option value="">Select</option>
+                      <option value="Wedding">Wedding</option>
+                      <option value="Festive">Festive</option>
+                      <option value="Party">Party Wear</option>
+                      <option value="Casual">Casual</option>
+                      <option value="Daily">Daily Wear</option>
+                      <option value="Bridal">Bridal</option>
+                      <option value="Religious">Religious / Pooja</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="input-label">Work Type</label>
+                    <select value={form.workType} onChange={(e) => setForm((f) => ({ ...f, workType: e.target.value }))} className="input-field">
+                      <option value="">Select</option>
+                      <option value="Zari">Zari / Gold Thread</option>
+                      <option value="Silver Zari">Silver Zari</option>
+                      <option value="Butta">Butta / Motifs</option>
+                      <option value="Temple Border">Temple Border</option>
+                      <option value="Checks">Checks / Kattam</option>
+                      <option value="Plain">Plain</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="input-label">Pattern</label>
+                    <select value={form.pattern} onChange={(e) => setForm((f) => ({ ...f, pattern: e.target.value }))} className="input-field">
+                      <option value="">Select</option>
+                      <option value="Geometric">Geometric</option>
+                      <option value="Floral">Floral</option>
+                      <option value="Paisley">Paisley / Mango</option>
+                      <option value="Peacock">Peacock</option>
+                      <option value="Stripes">Stripes</option>
+                      <option value="Diamond">Diamond</option>
+                      <option value="Abstract">Abstract</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* ═══ Care & Certification ═══ */}
+              <div className="border-t border-cream-deep pt-5">
+                <p className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-4">Care & Certification</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="input-label">Care Instructions</label>
+                    <input type="text" value={form.careInstructions} onChange={(e) => setForm((f) => ({ ...f, careInstructions: e.target.value }))} className="input-field" placeholder="Dry clean recommended" />
+                  </div>
+                  <div>
+                    <label className="input-label">Certification</label>
+                    <input type="text" value={form.certification} onChange={(e) => setForm((f) => ({ ...f, certification: e.target.value }))} className="input-field" placeholder="Silk Mark Certified, GI Tagged" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="input-label">SKU</label>
+                    <input type="text" value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} className="input-field font-mono" placeholder="DHN-SILK-001" />
+                  </div>
+                  <div>
+                    <label className="input-label">Tags (comma-separated)</label>
+                    <input type="text" value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} className="input-field" placeholder="wedding, silk, ikat, pochampally" />
+                  </div>
                 </div>
               </div>
 
