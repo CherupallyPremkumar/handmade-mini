@@ -17,6 +17,7 @@ const LABELS: Record<string, { label: string; type: 'number' | 'currency' | 'boo
   min_product_videos: { label: 'Min Videos Per Product', type: 'number' },
   require_product_description: { label: 'Description Required', type: 'boolean' },
   require_secondary_description: { label: 'Secondary Description Required', type: 'boolean' },
+  min_description_length: { label: 'Min Description Length (characters)', type: 'number' },
   max_addresses_per_user: { label: 'Max Addresses Per User', type: 'number' },
   max_pending_orders: { label: 'Max Pending Orders Per Customer', type: 'number' },
   free_shipping_threshold: { label: 'Free Shipping Threshold', type: 'currency' },
