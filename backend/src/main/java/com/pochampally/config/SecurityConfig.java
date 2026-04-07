@@ -97,7 +97,15 @@ public class SecurityConfig {
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
+        // Disable CORS for payment callback + webhooks (server-to-server, not browser AJAX)
+        CorsConfiguration noCors = new CorsConfiguration();
+        noCors.addAllowedOriginPattern("*");
+        noCors.setAllowedMethods(List.of("POST", "GET", "OPTIONS"));
+        noCors.setAllowedHeaders(List.of("*"));
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/checkout/payment-callback", noCors);
+        source.registerCorsConfiguration("/api/webhooks/**", noCors);
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
