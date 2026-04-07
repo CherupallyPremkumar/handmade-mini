@@ -4,6 +4,7 @@ import type {
   Order,
   OrderAddress,
   CartItem,
+  Address,
   GenericResponse,
   PaginatedResponse,
   AdminStats,
@@ -198,6 +199,29 @@ export const api = {
       request<CartItem[]>(`/api/cart/items/${sareeId}`, {
         method: 'DELETE',
       }),
+  },
+
+  /* ─── Addresses (authenticated) ─── */
+  addresses: {
+    list: () => authRequest<Address[]>('/api/addresses'),
+
+    create: (address: Omit<Address, 'id' | 'createdAt'>) =>
+      authRequest<Address>('/api/addresses', {
+        method: 'POST',
+        body: JSON.stringify(address),
+      }),
+
+    update: (id: string, address: Partial<Address>) =>
+      authRequest<Address>(`/api/addresses/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(address),
+      }),
+
+    delete: (id: string) =>
+      authRequest<void>(`/api/addresses/${id}`, { method: 'DELETE' }),
+
+    setDefault: (id: string) =>
+      authRequest<Address>(`/api/addresses/${id}/default`, { method: 'PATCH' }),
   },
 
   /* ─── Public: Checkout ─── */

@@ -24,6 +24,20 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface Address {
+  id: string;
+  label?: string;
+  name: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault: boolean;
+  createdAt?: string;
+}
+
 export interface OrderAddress {
   name: string;
   phone: string;
