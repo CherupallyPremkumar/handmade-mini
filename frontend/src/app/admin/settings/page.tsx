@@ -12,7 +12,11 @@ interface Setting {
   description: string;
 }
 
-const LABELS: Record<string, { label: string; type: 'number' | 'currency' }> = {
+const LABELS: Record<string, { label: string; type: 'number' | 'currency' | 'boolean' }> = {
+  min_product_images: { label: 'Min Images Per Product', type: 'number' },
+  min_product_videos: { label: 'Min Videos Per Product', type: 'number' },
+  require_product_description: { label: 'Description Required', type: 'boolean' },
+  require_secondary_description: { label: 'Secondary Description Required', type: 'boolean' },
   max_addresses_per_user: { label: 'Max Addresses Per User', type: 'number' },
   max_pending_orders: { label: 'Max Pending Orders Per Customer', type: 'number' },
   free_shipping_threshold: { label: 'Free Shipping Threshold', type: 'currency' },
@@ -109,7 +113,29 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              {editing === s.key ? (
+              {meta?.type === 'boolean' ? (
+                <button
+                  onClick={async () => {
+                    const newVal = s.value === 'true' ? 'false' : 'true';
+                    setSaving(true);
+                    try {
+                      const res = await authFetch(`${API}/api/admin/settings/${s.key}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ value: newVal }),
+                      });
+                      if (res.ok) await loadSettings();
+                    } finally { setSaving(false); }
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    s.value === 'true' ? 'bg-sage' : 'bg-bark-light/30'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    s.value === 'true' ? 'translate-x-5' : 'translate-x-1'
+                  }`} />
+                </button>
+              ) : editing === s.key ? (
                 <div className="flex items-center gap-2">
                   {meta?.type === 'currency' && (
                     <span className="font-ui text-sm text-bark-light">₹</span>

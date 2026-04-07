@@ -11,6 +11,7 @@ interface Product {
   id: string;
   name: string;
   description: string;
+  secondaryDescription: string;
   category: string;
   fabric: string;
   weaveType: string;
@@ -30,6 +31,7 @@ interface Product {
 interface ProductForm {
   name: string;
   description: string;
+  secondaryDescription: string;
   category: string;
   fabric: string;
   weaveType: string;
@@ -43,8 +45,15 @@ interface ProductForm {
   hsnCode: string;
 }
 
+interface ProductRules {
+  minImages: number;
+  minVideos: number;
+  requireDescription: boolean;
+  requireSecondaryDescription: boolean;
+}
+
 const EMPTY_FORM: ProductForm = {
-  name: '', description: '', category: 'SAREE', fabric: 'SILK', weaveType: 'IKAT',
+  name: '', description: '', secondaryDescription: '', category: 'SAREE', fabric: 'SILK', weaveType: 'IKAT',
   color: '', lengthMeters: 6.3, blousePiece: true, mrp: 0, sellingPrice: 0,
   stock: 0, gstPct: 5, hsnCode: '50079090',
 };
@@ -73,8 +82,15 @@ export default function AdminProductsPage() {
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoError, setVideoError] = useState('');
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const [rules, setRules] = useState<ProductRules>({ minImages: 3, minVideos: 1, requireDescription: true, requireSecondaryDescription: true });
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => {
+    fetchProducts();
+    fetch(`${API}/api/admin/settings/product-rules`, { credentials: 'include' as RequestCredentials })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setRules(data); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (searchParams.get('action') === 'add' && modalMode === 'closed' && !loading) {
@@ -97,8 +113,8 @@ export default function AdminProductsPage() {
 
   function openEdit(p: Product) {
     setForm({
-      name: p.name, description: p.description || '', category: p.category,
-      fabric: p.fabric, weaveType: p.weaveType, color: p.color,
+      name: p.name, description: p.description || '', secondaryDescription: p.secondaryDescription || '',
+      category: p.category, fabric: p.fabric, weaveType: p.weaveType, color: p.color,
       lengthMeters: p.lengthMeters, blousePiece: p.blousePiece,
       mrp: p.mrp, sellingPrice: p.sellingPrice, stock: p.stock,
       gstPct: p.gstPct, hsnCode: p.hsnCode,
@@ -111,12 +127,14 @@ export default function AdminProductsPage() {
   async function handleSave() {
     if (!form.name.trim()) { setSaveError('Product name is required'); return; }
     if (form.sellingPrice <= 0) { setSaveError('Selling price is required'); return; }
+    if (rules.requireDescription && !form.description.trim()) { setSaveError('Product description is required'); return; }
+    if (rules.requireSecondaryDescription && !form.secondaryDescription.trim()) { setSaveError('Secondary description is required (helps customers decide)'); return; }
 
-    // Validation for edit mode
+    // Media validation for edit mode
     if (modalMode === 'edit' && editProduct) {
       const imgCount = editProduct.images?.length || 0;
-      if (imgCount < 3) { setSaveError(`Minimum 3 images required (you have ${imgCount}). Upload images first.`); return; }
-      if (!editProduct.videoUrl) { setSaveError('1 video required. Upload video first.'); return; }
+      if (imgCount < rules.minImages) { setSaveError(`Minimum ${rules.minImages} images required (you have ${imgCount}). Upload images first.`); return; }
+      if (rules.minVideos > 0 && !editProduct.videoUrl) { setSaveError(`${rules.minVideos} video required. Upload video first.`); return; }
     }
 
     setSaving(true); setSaveError('');
@@ -273,7 +291,7 @@ export default function AdminProductsPage() {
                 {products.map((p) => {
                   const imgCount = p.images?.length || 0;
                   const hasVideo = !!p.videoUrl;
-                  const mediaOk = imgCount >= 3 && hasVideo;
+                  const mediaOk = imgCount >= rules.minImages && (rules.minVideos === 0 || hasVideo);
                   return (
                     <tr key={p.id} className={`border-b border-cream-deep/20 last:border-0 hover:bg-cream-warm/50 ${!p.isActive ? 'opacity-60' : ''}`}>
                       <td className="px-4 py-3">
@@ -300,7 +318,7 @@ export default function AdminProductsPage() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${mediaOk ? 'bg-sage/10 text-sage' : 'bg-red-50 text-terracotta'}`}>
-                          {imgCount}/3 img &middot; {hasVideo ? '1 vid' : '0 vid'}
+                          {imgCount}/{rules.minImages} img &middot; {hasVideo ? '1 vid' : '0 vid'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -350,8 +368,13 @@ export default function AdminProductsPage() {
                 <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="input-field" placeholder="e.g., Royal Magenta Ikat Silk Saree" />
               </div>
               <div>
-                <label className="input-label">Description</label>
+                <label className="input-label">Description {rules.requireDescription && '*'}</label>
                 <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} className="input-field resize-y" placeholder="Body color, pallu, blouse, fabric details..." />
+              </div>
+              <div>
+                <label className="input-label">Secondary Description {rules.requireSecondaryDescription && '*'}</label>
+                <textarea value={form.secondaryDescription} onChange={(e) => setForm((f) => ({ ...f, secondaryDescription: e.target.value }))} rows={2} className="input-field resize-y" placeholder="Why buy this saree? What makes it special? Care instructions..." />
+                <p className="font-ui text-[10px] text-bark-light/50 mt-1">Helps customers decide. E.g., styling tips, occasion, care instructions.</p>
               </div>
 
               {/* Price */}
@@ -436,7 +459,7 @@ export default function AdminProductsPage() {
                 <div className="border-t border-cream-deep pt-5">
                   <div className="flex items-center justify-between mb-3">
                     <label className="input-label !mb-0">
-                      Images * <span className={`text-xs ${currentImages.length >= 3 ? 'text-sage' : 'text-terracotta'}`}>({currentImages.length}/3 min, 6 max)</span>
+                      Images * <span className={`text-xs ${currentImages.length >= rules.minImages ? 'text-sage' : 'text-terracotta'}`}>({currentImages.length}/{rules.minImages} min, 6 max)</span>
                     </label>
                     <button
                       onClick={() => imageInputRef.current?.click()}
@@ -514,12 +537,14 @@ export default function AdminProductsPage() {
               <div className="mt-4 p-3 bg-cream-warm border border-cream-deep/40 rounded-lg">
                 <p className="font-ui text-xs font-semibold text-bark mb-1">Requirements:</p>
                 <div className="flex gap-4 font-ui text-xs">
-                  <span className={currentImages.length >= 3 ? 'text-sage' : 'text-terracotta'}>
-                    {currentImages.length >= 3 ? '✓' : '✗'} Min 3 images
+                  <span className={currentImages.length >= rules.minImages ? 'text-sage' : 'text-terracotta'}>
+                    {currentImages.length >= rules.minImages ? '✓' : '✗'} Min {rules.minImages} images
                   </span>
-                  <span className={currentVideo ? 'text-sage' : 'text-terracotta'}>
-                    {currentVideo ? '✓' : '✗'} 1 video
-                  </span>
+                  {rules.minVideos > 0 && (
+                    <span className={currentVideo ? 'text-sage' : 'text-terracotta'}>
+                      {currentVideo ? '✓' : '✗'} {rules.minVideos} video
+                    </span>
+                  )}
                 </div>
               </div>
             )}
