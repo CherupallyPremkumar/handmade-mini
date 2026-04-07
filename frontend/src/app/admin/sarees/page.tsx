@@ -134,16 +134,38 @@ export default function AdminProductsPage() {
   }
 
   async function handleToggleActive(id: string) {
-    await fetch(`${API}/api/admin/products/${id}/toggle-active`, {
-      method: 'PATCH', credentials: 'include' as RequestCredentials,
-    });
-    fetchProducts();
+    // Optimistic update — toggle immediately in UI
+    setProducts(prev => prev.map(p =>
+      p.id === id ? { ...p, isActive: !p.isActive } : p
+    ));
+    try {
+      const res = await fetch(`${API}/api/admin/products/${id}/toggle-active`, {
+        method: 'PATCH', credentials: 'include' as RequestCredentials,
+      });
+      if (!res.ok) {
+        // Revert on failure
+        setProducts(prev => prev.map(p =>
+          p.id === id ? { ...p, isActive: !p.isActive } : p
+        ));
+      }
+    } catch {
+      // Revert on network error
+      setProducts(prev => prev.map(p =>
+        p.id === id ? { ...p, isActive: !p.isActive } : p
+      ));
+    }
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this product?')) return;
-    await fetch(`${API}/api/admin/products/${id}`, { method: "DELETE", credentials: "include" as RequestCredentials });
-    fetchProducts();
+    const backup = products;
+    setProducts(prev => prev.filter(p => p.id !== id));
+    try {
+      const res = await fetch(`${API}/api/admin/products/${id}`, { method: "DELETE", credentials: "include" as RequestCredentials });
+      if (!res.ok) setProducts(backup);
+    } catch {
+      setProducts(backup);
+    }
   }
 
   async function handleImageUpload(files: FileList) {
