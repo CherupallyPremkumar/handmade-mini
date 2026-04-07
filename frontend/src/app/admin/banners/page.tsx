@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { authFetch } from '@/lib/auth-store';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
@@ -23,12 +23,29 @@ const EMPTY: Omit<Banner, 'id'> = {
   linkUrl: '/sarees', linkText: 'Shop Now', textColor: '#FFFFFF', position: 0, isActive: true,
 };
 
+async function uploadCmsImage(file: File, type: 'banner' | 'category'): Promise<string> {
+  const presignRes = await authFetch(`${API}/api/admin/cms/presign-image`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, contentType: file.type, filename: file.name }),
+  });
+  if (!presignRes.ok) throw new Error('Failed to get upload URL');
+  const { uploadUrl, cdnUrl } = await presignRes.json();
+
+  await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+  return cdnUrl;
+}
+
 export default function BannersPage() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [editing, setEditing] = useState<Banner | null>(null);
   const [form, setForm] = useState(EMPTY);
   const [mode, setMode] = useState<'list' | 'form'>('list');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadingMobile, setUploadingMobile] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const mobileFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -37,25 +54,25 @@ export default function BannersPage() {
     if (res.ok) setBanners(await res.json());
   }
 
-  function openAdd() {
-    setForm(EMPTY);
-    setEditing(null);
-    setMode('form');
-  }
+  function openAdd() { setForm(EMPTY); setEditing(null); setMode('form'); }
+  function openEdit(b: Banner) { setForm(b); setEditing(b); setMode('form'); }
 
-  function openEdit(b: Banner) {
-    setForm(b);
-    setEditing(b);
-    setMode('form');
+  async function handleImageUpload(file: File, field: 'imageUrl' | 'mobileImageUrl') {
+    const setUpl = field === 'imageUrl' ? setUploading : setUploadingMobile;
+    setUpl(true);
+    try {
+      const cdnUrl = await uploadCmsImage(file, 'banner');
+      setForm(f => ({ ...f, [field]: cdnUrl }));
+    } catch { alert('Upload failed'); }
+    finally { setUpl(false); }
   }
 
   async function save() {
-    if (!form.imageUrl) return;
+    if (!form.imageUrl) { alert('Upload a banner image first'); return; }
     setSaving(true);
     try {
       const url = editing ? `${API}/api/admin/banners/${editing.id}` : `${API}/api/admin/banners`;
-      const method = editing ? 'PUT' : 'POST';
-      await authFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      await authFetch(url, { method: editing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
       setMode('list');
       await load();
     } finally { setSaving(false); }
@@ -79,22 +96,56 @@ export default function BannersPage() {
           <h1 className="font-display text-2xl font-bold text-bark">{editing ? 'Edit Banner' : 'Add Banner'}</h1>
           <button onClick={() => setMode('list')} className="btn-outline rounded-lg">Cancel</button>
         </div>
-        <div className="bg-white border border-cream-deep/60 p-6 space-y-4">
-          {form.imageUrl && (
-            <div className="rounded-lg overflow-hidden h-48 bg-bark">
-              <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="input-label">Image URL *</label>
-              <input type="text" value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} className="input-field" placeholder="https://..." />
-            </div>
-            <div>
-              <label className="input-label">Mobile Image URL</label>
-              <input type="text" value={form.mobileImageUrl} onChange={e => setForm(f => ({ ...f, mobileImageUrl: e.target.value }))} className="input-field" placeholder="Optional — for small screens" />
-            </div>
+        <div className="bg-white border border-cream-deep/60 p-6 space-y-5">
+
+          {/* Desktop Image Upload */}
+          <div>
+            <label className="input-label">Banner Image (Desktop) * <span className="text-bark-light/50 font-normal">Recommended: 1920x600px</span></label>
+            {form.imageUrl ? (
+              <div className="relative rounded-lg overflow-hidden h-48 bg-bark mb-2">
+                <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                <button onClick={() => setForm(f => ({ ...f, imageUrl: '' }))} className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600">x</button>
+              </div>
+            ) : (
+              <div
+                onClick={() => fileRef.current?.click()}
+                className="border-2 border-dashed border-cream-deep hover:border-gold rounded-lg p-8 text-center cursor-pointer transition-colors"
+              >
+                {uploading ? (
+                  <p className="font-ui text-sm text-bark-light">Uploading...</p>
+                ) : (
+                  <>
+                    <svg className="w-10 h-10 mx-auto text-bark-light/30 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="font-ui text-sm text-bark-light">Click to upload banner image</p>
+                    <p className="font-ui text-xs text-bark-light/50 mt-1">JPG, PNG, WebP. 1920x600px recommended.</p>
+                  </>
+                )}
+              </div>
+            )}
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, 'imageUrl'); }} />
           </div>
+
+          {/* Mobile Image Upload */}
+          <div>
+            <label className="input-label">Mobile Image <span className="text-bark-light/50 font-normal">Optional. 800x800px recommended.</span></label>
+            {form.mobileImageUrl ? (
+              <div className="relative rounded-lg overflow-hidden h-32 w-32 bg-bark mb-2">
+                <img src={form.mobileImageUrl} alt="Mobile" className="w-full h-full object-cover" />
+                <button onClick={() => setForm(f => ({ ...f, mobileImageUrl: '' }))} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px]">x</button>
+              </div>
+            ) : (
+              <button onClick={() => mobileFileRef.current?.click()} className="font-ui text-xs text-maroon hover:underline">
+                {uploadingMobile ? 'Uploading...' : '+ Upload mobile image'}
+              </button>
+            )}
+            <input ref={mobileFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, 'mobileImageUrl'); }} />
+          </div>
+
+          {/* Text fields */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="input-label">Title</label>
@@ -119,7 +170,7 @@ export default function BannersPage() {
               <input type="number" value={form.position} onChange={e => setForm(f => ({ ...f, position: parseInt(e.target.value || '0') }))} className="input-field" />
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             <div>
               <label className="input-label">Text Color</label>
               <input type="color" value={form.textColor} onChange={e => setForm(f => ({ ...f, textColor: e.target.value }))} className="w-10 h-10 rounded border cursor-pointer" />
@@ -129,6 +180,7 @@ export default function BannersPage() {
               Active
             </label>
           </div>
+
           <div className="flex justify-end gap-3 pt-4 border-t border-cream-deep/40">
             <button onClick={() => setMode('list')} className="btn-outline rounded-lg">Cancel</button>
             <button onClick={save} disabled={saving || !form.imageUrl} className="btn-primary rounded-lg">
@@ -152,7 +204,7 @@ export default function BannersPage() {
 
       {banners.length === 0 ? (
         <div className="bg-white border border-cream-deep/60 p-12 text-center">
-          <p className="font-body text-bark-light mb-4">No banners yet. Add your first banner to display on the storefront.</p>
+          <p className="font-body text-bark-light mb-4">No banners yet. Add your first banner to display on the homepage.</p>
           <button onClick={openAdd} className="btn-primary rounded-lg">Add Banner</button>
         </div>
       ) : (
@@ -166,7 +218,7 @@ export default function BannersPage() {
                 <div className="min-w-0">
                   <p className="font-ui text-sm font-medium text-bark">{b.title || '(No title)'}</p>
                   <p className="font-ui text-xs text-bark-light/60 mt-0.5">{b.subtitle || ''}</p>
-                  <p className="font-ui text-xs text-bark-light/40 mt-1">Position: {b.position} &middot; {b.linkUrl || 'No link'}</p>
+                  <p className="font-ui text-xs text-bark-light/40 mt-1">Pos: {b.position} &middot; {b.linkUrl || 'No link'}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button onClick={() => toggle(b.id)}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { authFetch } from '@/lib/auth-store';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
@@ -29,6 +29,8 @@ export default function CategoriesPage() {
   const [form, setForm] = useState(EMPTY);
   const [mode, setMode] = useState<'list' | 'form'>('list');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -100,9 +102,34 @@ export default function CategoriesPage() {
             <input type="text" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="input-field" placeholder="Handwoven pure silk sarees from Pochampally" />
           </div>
           <div>
-            <label className="input-label">Image URL</label>
-            <input type="text" value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} className="input-field" placeholder="https://..." />
-            <p className="font-ui text-[10px] text-bark-light/50 mt-1">Paste any image URL. Recommended: square or 4:3 ratio.</p>
+            <label className="input-label">Category Image <span className="text-bark-light/50 font-normal">Recommended: 600x600px (square)</span></label>
+            {form.imageUrl ? (
+              <div className="relative rounded-lg overflow-hidden h-32 w-32 bg-cream-warm mb-2">
+                <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                <button onClick={() => setForm(f => ({ ...f, imageUrl: '' }))} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px]">x</button>
+              </div>
+            ) : (
+              <div onClick={() => fileRef.current?.click()}
+                className="border-2 border-dashed border-cream-deep hover:border-gold rounded-lg p-6 text-center cursor-pointer w-32 h-32 flex items-center justify-center transition-colors">
+                {uploading ? <p className="font-ui text-xs text-bark-light">Uploading...</p> : <span className="text-bark-light/30 text-2xl">+</span>}
+              </div>
+            )}
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+              onChange={async e => {
+                const f = e.target.files?.[0]; if (!f) return;
+                setUploading(true);
+                try {
+                  const presignRes = await authFetch(`${API}/api/admin/cms/presign-image`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'category', contentType: f.type, filename: f.name }),
+                  });
+                  if (!presignRes.ok) throw new Error();
+                  const { uploadUrl, cdnUrl } = await presignRes.json();
+                  await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': f.type }, body: f });
+                  setForm(prev => ({ ...prev, imageUrl: cdnUrl }));
+                } catch { alert('Upload failed'); }
+                finally { setUploading(false); }
+              }} />
           </div>
 
           <div className="border-t border-cream-deep pt-4">
