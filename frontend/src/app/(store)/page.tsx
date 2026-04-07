@@ -62,13 +62,27 @@ const USP_ITEMS = [
 
 export default function HomePage() {
   const [featured, setFeatured] = useState<Saree[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
+  const loadFeatured = () => {
+    setLoading(true);
+    setError(false);
     api.sarees.list().then(res => {
       if (res.success && res.data && res.data.length > 0) {
         setFeatured(res.data.slice(0, 4));
+      } else {
+        setError(true);
       }
-    }).catch(() => {});
+    }).catch(() => {
+      setError(true);
+    }).finally(() => {
+      setLoading(false);
+    });
+  };
+
+  useEffect(() => {
+    loadFeatured();
   }, []);
 
   return (
@@ -201,13 +215,34 @@ export default function HomePage() {
           </div>
 
           {/* Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featured.map((saree) => (
-              <div key={saree.id} className="animate-fade-in-up">
-                <SareeCard saree={saree} />
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-cream-deep rounded-lg h-72 mb-3" />
+                  <div className="bg-cream-deep rounded h-5 w-3/4 mb-2" />
+                  <div className="bg-cream-deep rounded h-4 w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="font-body text-bark-light mb-4">
+                Couldn&apos;t load sarees. Please try again.
+              </p>
+              <button onClick={loadFeatured} className="btn-primary">
+                Retry
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featured.map((saree) => (
+                <div key={saree.id} className="animate-fade-in-up">
+                  <SareeCard saree={saree} />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* CTA */}
           <div className="text-center mt-12">

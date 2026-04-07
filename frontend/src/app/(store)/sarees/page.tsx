@@ -8,17 +8,31 @@ import type { Saree } from '@/lib/types';
 
 export default function SareesPage() {
   const [sarees, setSarees] = useState<Saree[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [fabric, setFabric] = useState('');
   const [weave, setWeave] = useState('');
   const [color, setColor] = useState('');
   const [sort, setSort] = useState('');
 
-  useEffect(() => {
+  const loadSarees = () => {
+    setLoading(true);
+    setError(false);
     api.sarees.list().then(res => {
       if (res.success && res.data && res.data.length > 0) {
         setSarees(res.data);
+      } else {
+        setError(true);
       }
-    }).catch(() => {});
+    }).catch(() => {
+      setError(true);
+    }).finally(() => {
+      setLoading(false);
+    });
+  };
+
+  useEffect(() => {
+    loadSarees();
   }, []);
 
   const filtered = useMemo(() => {
@@ -102,7 +116,34 @@ export default function SareesPage() {
               </div>
             </div>
 
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="bg-cream-deep rounded-lg h-72 mb-3" />
+                    <div className="bg-cream-deep rounded h-5 w-3/4 mb-2" />
+                    <div className="bg-cream-deep rounded h-4 w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : error ? (
+              <div className="text-center py-20">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mb-4">
+                  <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <h3 className="font-display text-xl font-semibold text-bark mb-2">
+                  Couldn&apos;t load sarees
+                </h3>
+                <p className="font-body text-bark-light mb-4">
+                  Please check your connection and try again
+                </p>
+                <button onClick={loadSarees} className="btn-primary">
+                  Try Again
+                </button>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="text-center py-20">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cream-warm mb-4">
                   <svg
