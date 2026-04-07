@@ -51,6 +51,7 @@ razorpay:
 app:
   jwt-secret: ${JWT_SECRET}
   frontend-url: ${FRONTEND_URL:https://dhanunjaiah.com}
+  cors-origins: ${CORS_ORIGINS}
 
 # Logging
 logging:
