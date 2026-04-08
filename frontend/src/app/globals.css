@@ -210,6 +210,7 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   border: none;
+  border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
@@ -244,6 +245,7 @@ body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   border: none;
+  border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -266,6 +268,7 @@ body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   border: 1.5px solid var(--maroon);
+  border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -284,6 +287,7 @@ body {
   color: var(--bark);
   background-color: white;
   border: 1.5px solid var(--cream-deep);
+  border-radius: 0.5rem;
   outline: none;
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }

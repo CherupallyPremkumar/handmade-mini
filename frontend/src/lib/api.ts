@@ -4,6 +4,7 @@ import type {
   Order,
   OrderAddress,
   CartItem,
+  Address,
   GenericResponse,
   PaginatedResponse,
   AdminStats,
@@ -90,7 +91,7 @@ function mapProductToSaree(p: any): Saree {
     mrpInPaisa: p.mrp ?? p.mrpInPaisa ?? 0,
     fabric: p.fabric ?? 'SILK',
     weave: p.weaveType ?? p.weave ?? 'IKAT',
-    color: p.color ?? '',
+    color: p.bodyColor ?? p.color ?? '',
     lengthInMeters: p.lengthMeters ?? p.lengthInMeters ?? 6.0,
     blousePieceIncluded: p.blousePiece ?? p.blousePieceIncluded ?? false,
     images: p.images ?? [],
@@ -198,6 +199,29 @@ export const api = {
       request<CartItem[]>(`/api/cart/items/${sareeId}`, {
         method: 'DELETE',
       }),
+  },
+
+  /* ─── Addresses (authenticated) ─── */
+  addresses: {
+    list: () => authRequest<Address[]>('/api/addresses'),
+
+    create: (address: Omit<Address, 'id' | 'createdAt'>) =>
+      authRequest<Address>('/api/addresses', {
+        method: 'POST',
+        body: JSON.stringify(address),
+      }),
+
+    update: (id: string, address: Partial<Address>) =>
+      authRequest<Address>(`/api/addresses/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(address),
+      }),
+
+    delete: (id: string) =>
+      authRequest<void>(`/api/addresses/${id}`, { method: 'DELETE' }),
+
+    setDefault: (id: string) =>
+      authRequest<Address>(`/api/addresses/${id}/default`, { method: 'PATCH' }),
   },
 
   /* ─── Public: Checkout ─── */

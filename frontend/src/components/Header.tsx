@@ -120,10 +120,12 @@ export default function Header() {
                           Admin
                         </Link>
                       )}
-                      <span className="font-ui text-xs text-bark-light/60">{user?.name}</span>
-                      <button onClick={logout} className="font-ui text-xs text-bark-light hover:text-maroon transition-colors">
-                        Logout
-                      </button>
+                      <Link href="/profile" className="font-ui text-xs text-bark-light/60 hover:text-maroon transition-colors flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        {user?.name}
+                      </Link>
                     </>
                   ) : (
                     <Link href="/login" className="font-ui text-sm text-bark-light hover:text-maroon transition-colors flex items-center gap-1.5">
@@ -192,10 +194,9 @@ export default function Header() {
                       {isAdmin && (
                         <Link href="/admin" className="flex items-center gap-2 py-3 font-ui text-base text-gold font-medium hover:text-maroon transition-colors border-b border-cream-deep/40">Admin</Link>
                       )}
-                      <div className="py-3 border-b border-cream-deep/40">
-                        <p className="font-ui text-sm text-bark-light/60 mb-1">Signed in as</p>
-                        <p className="font-ui text-base font-medium text-bark">{user?.name}</p>
-                      </div>
+                      <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="block py-3 font-ui text-base text-bark hover:text-maroon transition-colors border-b border-cream-deep/40">
+                        My Account ({user?.name})
+                      </Link>
                       <button onClick={() => { logout(); setMobileMenuOpen(false); }} className="block w-full text-left py-3 font-ui text-base text-maroon">Logout</button>
                     </>
                   ) : (

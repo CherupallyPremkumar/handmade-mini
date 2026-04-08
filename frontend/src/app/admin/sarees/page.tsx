@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth-store';
 import { formatINR, formatFabric, formatWeave } from '@/lib/format';
 
@@ -10,6 +11,7 @@ interface Product {
   id: string;
   name: string;
   description: string;
+  secondaryDescription: string;
   category: string;
   fabric: string;
   weaveType: string;
@@ -24,11 +26,25 @@ interface Product {
   hsnCode: string;
   gstPct: number;
   isActive: boolean;
+  weightGrams: number | null;
+  widthInches: number | null;
+  blouseLengthMeters: number | null;
+  occasion: string;
+  workType: string;
+  pattern: string;
+  bodyColor: string;
+  borderColor: string;
+  palluColor: string;
+  careInstructions: string;
+  certification: string;
+  sku: string;
+  tags: string;
 }
 
 interface ProductForm {
   name: string;
   description: string;
+  secondaryDescription: string;
   category: string;
   fabric: string;
   weaveType: string;
@@ -40,16 +56,41 @@ interface ProductForm {
   stock: number;
   gstPct: number;
   hsnCode: string;
+  weightGrams: number;
+  widthInches: number;
+  blouseLengthMeters: number;
+  occasion: string;
+  workType: string;
+  pattern: string;
+  bodyColor: string;
+  borderColor: string;
+  palluColor: string;
+  careInstructions: string;
+  certification: string;
+  sku: string;
+  tags: string;
+}
+
+interface ProductRules {
+  minImages: number;
+  minVideos: number;
+  requireDescription: boolean;
+  requireSecondaryDescription: boolean;
 }
 
 const EMPTY_FORM: ProductForm = {
-  name: '', description: '', category: 'SAREE', fabric: 'SILK', weaveType: 'IKAT',
+  name: '', description: '', secondaryDescription: '', category: 'SAREE', fabric: 'SILK', weaveType: 'IKAT',
   color: '', lengthMeters: 6.3, blousePiece: true, mrp: 0, sellingPrice: 0,
   stock: 0, gstPct: 5, hsnCode: '50079090',
+  weightGrams: 0, widthInches: 44, blouseLengthMeters: 0.8,
+  occasion: '', workType: '', pattern: '',
+  bodyColor: '', borderColor: '', palluColor: '',
+  careInstructions: 'Dry clean recommended', certification: '', sku: '', tags: '',
 };
 
 export default function AdminProductsPage() {
   const { getAuthHeaders } = useAuthStore();
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalMode, setModalMode] = useState<'closed' | 'add' | 'edit'>('closed');
@@ -71,13 +112,26 @@ export default function AdminProductsPage() {
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoError, setVideoError] = useState('');
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const [rules, setRules] = useState<ProductRules>({ minImages: 3, minVideos: 1, requireDescription: true, requireSecondaryDescription: true });
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => {
+    fetchProducts();
+    fetch(`${API}/api/admin/settings/product-rules`, { credentials: 'include' as RequestCredentials })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setRules(data); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'add' && modalMode === 'closed' && !loading) {
+      openAdd();
+    }
+  }, [searchParams, loading]);
 
   async function fetchProducts() {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/products`);
+      const res = await fetch(`${API}/api/admin/products`, { credentials: 'include' as RequestCredentials });
       if (res.ok) setProducts(await res.json());
     } catch {} finally { setLoading(false); }
   }
@@ -89,11 +143,17 @@ export default function AdminProductsPage() {
 
   function openEdit(p: Product) {
     setForm({
-      name: p.name, description: p.description || '', category: p.category,
-      fabric: p.fabric, weaveType: p.weaveType, color: p.color,
+      name: p.name, description: p.description || '', secondaryDescription: p.secondaryDescription || '',
+      category: p.category, fabric: p.fabric, weaveType: p.weaveType, color: p.color,
       lengthMeters: p.lengthMeters, blousePiece: p.blousePiece,
       mrp: p.mrp, sellingPrice: p.sellingPrice, stock: p.stock,
       gstPct: p.gstPct, hsnCode: p.hsnCode,
+      weightGrams: p.weightGrams || 0, widthInches: p.widthInches || 44,
+      blouseLengthMeters: p.blouseLengthMeters || 0.8,
+      occasion: p.occasion || '', workType: p.workType || '', pattern: p.pattern || '',
+      bodyColor: p.bodyColor || '', borderColor: p.borderColor || '', palluColor: p.palluColor || '',
+      careInstructions: p.careInstructions || '', certification: p.certification || '',
+      sku: p.sku || '', tags: p.tags || '',
     });
     setPriceDisplay(String(p.sellingPrice / 100));
     setMrpDisplay(String(p.mrp / 100));
@@ -103,12 +163,14 @@ export default function AdminProductsPage() {
   async function handleSave() {
     if (!form.name.trim()) { setSaveError('Product name is required'); return; }
     if (form.sellingPrice <= 0) { setSaveError('Selling price is required'); return; }
+    if (rules.requireDescription && !form.description.trim()) { setSaveError('Product description is required'); return; }
+    if (rules.requireSecondaryDescription && !form.secondaryDescription.trim()) { setSaveError('Secondary description is required (helps customers decide)'); return; }
 
-    // Validation for edit mode
+    // Media validation for edit mode
     if (modalMode === 'edit' && editProduct) {
       const imgCount = editProduct.images?.length || 0;
-      if (imgCount < 3) { setSaveError(`Minimum 3 images required (you have ${imgCount}). Upload images first.`); return; }
-      if (!editProduct.videoUrl) { setSaveError('1 video required. Upload video first.'); return; }
+      if (imgCount < rules.minImages) { setSaveError(`Minimum ${rules.minImages} images required (you have ${imgCount}). Upload images first.`); return; }
+      if (rules.minVideos > 0 && !editProduct.videoUrl) { setSaveError(`${rules.minVideos} video required. Upload video first.`); return; }
     }
 
     setSaving(true); setSaveError('');
@@ -116,7 +178,8 @@ export default function AdminProductsPage() {
       const url = modalMode === 'add' ? `${API}/api/admin/products` : `${API}/api/admin/products/${editId}`;
       const method = modalMode === 'add' ? 'POST' : 'PUT';
       const res = await fetch(url, {
-        method, headers: { 'Content-Type': 'application/json' },
+        method, credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, isActive: true }),
       });
       if (res.ok) { setModalMode('closed'); fetchProducts(); }
@@ -124,10 +187,39 @@ export default function AdminProductsPage() {
     } catch { setSaveError('Network error'); } finally { setSaving(false); }
   }
 
+  async function handleToggleActive(id: string) {
+    // Optimistic update — toggle immediately in UI
+    setProducts(prev => prev.map(p =>
+      p.id === id ? { ...p, isActive: !p.isActive } : p
+    ));
+    try {
+      const res = await fetch(`${API}/api/admin/products/${id}/toggle-active`, {
+        method: 'PATCH', credentials: 'include' as RequestCredentials,
+      });
+      if (!res.ok) {
+        // Revert on failure
+        setProducts(prev => prev.map(p =>
+          p.id === id ? { ...p, isActive: !p.isActive } : p
+        ));
+      }
+    } catch {
+      // Revert on network error
+      setProducts(prev => prev.map(p =>
+        p.id === id ? { ...p, isActive: !p.isActive } : p
+      ));
+    }
+  }
+
   async function handleDelete(id: string) {
     if (!confirm('Delete this product?')) return;
-    await fetch(`${API}/api/admin/products/${id}`, { method: "DELETE", credentials: "include" as RequestCredentials });
-    fetchProducts();
+    const backup = products;
+    setProducts(prev => prev.filter(p => p.id !== id));
+    try {
+      const res = await fetch(`${API}/api/admin/products/${id}`, { method: "DELETE", credentials: "include" as RequestCredentials });
+      if (!res.ok) setProducts(backup);
+    } catch {
+      setProducts(backup);
+    }
   }
 
   async function handleImageUpload(files: FileList) {
@@ -207,74 +299,89 @@ export default function AdminProductsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-2xl font-bold text-bark">Products</h1>
-        <button onClick={openAdd} className="btn-primary">+ Add Product</button>
+        <div>
+          <h1 className="font-display text-2xl font-bold text-bark">Products</h1>
+          <p className="font-ui text-sm text-bark-light/60 mt-0.5">{products.length} product{products.length !== 1 ? 's' : ''} in catalog</p>
+        </div>
+        <button onClick={openAdd} className="btn-primary rounded-lg">+ Add Product</button>
       </div>
 
       {loading ? (
-        <div className="space-y-3">{[1,2,3].map((i) => <div key={i} className="animate-pulse bg-cream-deep/50 h-16 rounded" />)}</div>
+        <div className="space-y-3">{[1,2,3].map((i) => <div key={i} className="animate-pulse bg-cream-deep/50 h-16 rounded-xl" />)}</div>
       ) : (
-        <div className="bg-white border border-cream-deep/60 overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-cream-deep/40">
-                <th className="text-left px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Product</th>
-                <th className="text-left px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Type</th>
-                <th className="text-right px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Price</th>
-                <th className="text-center px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Stock</th>
-                <th className="text-center px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Media</th>
-                <th className="text-right px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((p) => {
-                const imgCount = p.images?.length || 0;
-                const hasVideo = !!p.videoUrl;
-                const mediaOk = imgCount >= 3 && hasVideo;
-                return (
-                  <tr key={p.id} className="border-b border-cream-deep/20 last:border-0 hover:bg-cream-warm/50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-12 bg-cream-warm border border-cream-deep/40 overflow-hidden shrink-0">
-                          {imgCount > 0 ? <img src={p.images[0]} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-bark-light/20 text-xs">No img</div>}
+        <div className="bg-white rounded-xl border border-cream-deep/60 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-cream-deep/40 bg-cream-warm/30">
+                  <th className="text-left px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Product</th>
+                  <th className="text-left px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Type</th>
+                  <th className="text-right px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Price</th>
+                  <th className="text-center px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Stock</th>
+                  <th className="text-center px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Media</th>
+                  <th className="text-center px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Status</th>
+                  <th className="text-right px-4 py-3 font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((p) => {
+                  const imgCount = p.images?.length || 0;
+                  const hasVideo = !!p.videoUrl;
+                  const mediaOk = imgCount >= rules.minImages && (rules.minVideos === 0 || hasVideo);
+                  return (
+                    <tr key={p.id} className={`border-b border-cream-deep/20 last:border-0 hover:bg-cream-warm/50 ${!p.isActive ? 'opacity-60' : ''}`}>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-12 bg-cream-warm rounded-lg border border-cream-deep/40 overflow-hidden shrink-0">
+                            {imgCount > 0 ? <img src={p.images[0]} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-bark-light/20 text-xs">No img</div>}
+                          </div>
+                          <div>
+                            <p className="font-ui text-sm font-medium text-bark">{p.name}</p>
+                            <p className="font-ui text-xs text-bark-light/60">{p.color} &middot; {p.lengthMeters}m</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-ui text-sm font-medium text-bark">{p.name}</p>
-                          <p className="font-ui text-xs text-bark-light/60">{p.color} &middot; {p.lengthMeters}m</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-ui text-sm text-bark">{formatFabric(p.fabric)}</p>
+                        <p className="font-ui text-xs text-bark-light/60">{formatWeave(p.weaveType)}</p>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <p className="font-ui text-sm font-semibold text-maroon">{formatINR(p.sellingPrice)}</p>
+                        {p.mrp > p.sellingPrice && <p className="font-ui text-xs text-bark-light/50 line-through">{formatINR(p.mrp)}</p>}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${p.stock <= 3 ? 'bg-red-50 text-terracotta' : 'bg-sage/10 text-sage'}`}>{p.stock}</span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${mediaOk ? 'bg-sage/10 text-sage' : 'bg-red-50 text-terracotta'}`}>
+                          {imgCount}/{rules.minImages} img &middot; {hasVideo ? '1 vid' : '0 vid'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => handleToggleActive(p.id)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${p.isActive ? 'bg-sage' : 'bg-bark-light/30'}`}
+                          title={p.isActive ? 'Active — click to deactivate' : 'Inactive — click to activate'}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${p.isActive ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-bark-light hover:text-maroon hover:bg-maroon/5 transition-colors" title="Edit">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          </button>
+                          <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg text-bark-light hover:text-red-500 hover:bg-red-500/5 transition-colors" title="Delete">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-ui text-sm text-bark">{formatFabric(p.fabric)}</p>
-                      <p className="font-ui text-xs text-bark-light/60">{formatWeave(p.weaveType)}</p>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <p className="font-ui text-sm font-semibold text-maroon">{formatINR(p.sellingPrice)}</p>
-                      {p.mrp > p.sellingPrice && <p className="font-ui text-xs text-bark-light/50 line-through">{formatINR(p.mrp)}</p>}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`font-ui text-sm font-medium ${p.stock <= 3 ? 'text-terracotta' : 'text-sage'}`}>{p.stock}</span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className={`font-ui text-xs ${mediaOk ? 'text-sage' : 'text-terracotta'}`}>
-                        {imgCount}/3 img &middot; {hasVideo ? '1 vid' : '0 vid'}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(p)} className="p-1.5 text-bark-light hover:text-maroon" title="Edit">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                        </button>
-                        <button onClick={() => handleDelete(p.id)} className="p-1.5 text-bark-light hover:text-red-500" title="Delete">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -282,10 +389,10 @@ export default function AdminProductsPage() {
       {modalMode !== 'closed' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-bark/50" onClick={() => setModalMode('closed')} />
-          <div className="relative bg-cream w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+          <div className="relative bg-cream rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-display text-xl font-bold text-bark">{modalMode === 'add' ? 'Add Product' : 'Edit Product'}</h2>
-              <button onClick={() => setModalMode('closed')} className="p-1 text-bark-light hover:text-bark">
+              <button onClick={() => setModalMode('closed')} className="p-1 rounded-full text-bark-light hover:text-bark hover:bg-cream-deep/30 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -297,8 +404,13 @@ export default function AdminProductsPage() {
                 <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="input-field" placeholder="e.g., Royal Magenta Ikat Silk Saree" />
               </div>
               <div>
-                <label className="input-label">Description</label>
+                <label className="input-label">Description {rules.requireDescription && '*'}</label>
                 <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} className="input-field resize-y" placeholder="Body color, pallu, blouse, fabric details..." />
+              </div>
+              <div>
+                <label className="input-label">Secondary Description {rules.requireSecondaryDescription && '*'}</label>
+                <textarea value={form.secondaryDescription} onChange={(e) => setForm((f) => ({ ...f, secondaryDescription: e.target.value }))} rows={2} className="input-field resize-y" placeholder="Why buy this saree? What makes it special? Care instructions..." />
+                <p className="font-ui text-[10px] text-bark-light/50 mt-1">Helps customers decide. E.g., styling tips, occasion, care instructions.</p>
               </div>
 
               {/* Price */}
@@ -378,12 +490,120 @@ export default function AdminProductsPage() {
                 </div>
               </div>
 
+              {/* ═══ Physical Details ═══ */}
+              <div className="border-t border-cream-deep pt-5 mt-2">
+                <p className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-4">Physical Details</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="input-label">Weight (grams)</label>
+                    <input type="number" value={form.weightGrams || ''} onChange={(e) => setForm((f) => ({ ...f, weightGrams: parseInt(e.target.value || '0', 10) }))} className="input-field" placeholder="450" />
+                  </div>
+                  <div>
+                    <label className="input-label">Width (inches)</label>
+                    <input type="number" step="0.5" value={form.widthInches || ''} onChange={(e) => setForm((f) => ({ ...f, widthInches: parseFloat(e.target.value || '0') }))} className="input-field" placeholder="44" />
+                  </div>
+                  <div>
+                    <label className="input-label">Blouse Length (m)</label>
+                    <input type="number" step="0.1" value={form.blouseLengthMeters || ''} onChange={(e) => setForm((f) => ({ ...f, blouseLengthMeters: parseFloat(e.target.value || '0') }))} className="input-field" placeholder="0.8" />
+                  </div>
+                </div>
+              </div>
+
+              {/* ═══ Colors Breakdown ═══ */}
+              <div className="border-t border-cream-deep pt-5">
+                <p className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-4">Color Details</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="input-label">Body Color</label>
+                    <input type="text" value={form.bodyColor} onChange={(e) => setForm((f) => ({ ...f, bodyColor: e.target.value }))} className="input-field" placeholder="Royal Blue" />
+                  </div>
+                  <div>
+                    <label className="input-label">Border Color</label>
+                    <input type="text" value={form.borderColor} onChange={(e) => setForm((f) => ({ ...f, borderColor: e.target.value }))} className="input-field" placeholder="Gold Zari" />
+                  </div>
+                  <div>
+                    <label className="input-label">Pallu Color</label>
+                    <input type="text" value={form.palluColor} onChange={(e) => setForm((f) => ({ ...f, palluColor: e.target.value }))} className="input-field" placeholder="Magenta" />
+                  </div>
+                </div>
+              </div>
+
+              {/* ═══ Classification ═══ */}
+              <div className="border-t border-cream-deep pt-5">
+                <p className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-4">Classification</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="input-label">Occasion</label>
+                    <select value={form.occasion} onChange={(e) => setForm((f) => ({ ...f, occasion: e.target.value }))} className="input-field">
+                      <option value="">Select</option>
+                      <option value="Wedding">Wedding</option>
+                      <option value="Festive">Festive</option>
+                      <option value="Party">Party Wear</option>
+                      <option value="Casual">Casual</option>
+                      <option value="Daily">Daily Wear</option>
+                      <option value="Bridal">Bridal</option>
+                      <option value="Religious">Religious / Pooja</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="input-label">Work Type</label>
+                    <select value={form.workType} onChange={(e) => setForm((f) => ({ ...f, workType: e.target.value }))} className="input-field">
+                      <option value="">Select</option>
+                      <option value="Zari">Zari / Gold Thread</option>
+                      <option value="Silver Zari">Silver Zari</option>
+                      <option value="Butta">Butta / Motifs</option>
+                      <option value="Temple Border">Temple Border</option>
+                      <option value="Checks">Checks / Kattam</option>
+                      <option value="Plain">Plain</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="input-label">Pattern</label>
+                    <select value={form.pattern} onChange={(e) => setForm((f) => ({ ...f, pattern: e.target.value }))} className="input-field">
+                      <option value="">Select</option>
+                      <option value="Geometric">Geometric</option>
+                      <option value="Floral">Floral</option>
+                      <option value="Paisley">Paisley / Mango</option>
+                      <option value="Peacock">Peacock</option>
+                      <option value="Stripes">Stripes</option>
+                      <option value="Diamond">Diamond</option>
+                      <option value="Abstract">Abstract</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* ═══ Care & Certification ═══ */}
+              <div className="border-t border-cream-deep pt-5">
+                <p className="font-ui text-xs font-semibold tracking-wider uppercase text-bark-light/60 mb-4">Care & Certification</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="input-label">Care Instructions</label>
+                    <input type="text" value={form.careInstructions} onChange={(e) => setForm((f) => ({ ...f, careInstructions: e.target.value }))} className="input-field" placeholder="Dry clean recommended" />
+                  </div>
+                  <div>
+                    <label className="input-label">Certification</label>
+                    <input type="text" value={form.certification} onChange={(e) => setForm((f) => ({ ...f, certification: e.target.value }))} className="input-field" placeholder="Silk Mark Certified, GI Tagged" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="input-label">SKU</label>
+                    <input type="text" value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} className="input-field font-mono" placeholder="DHN-SILK-001" />
+                  </div>
+                  <div>
+                    <label className="input-label">Tags (comma-separated)</label>
+                    <input type="text" value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} className="input-field" placeholder="wedding, silk, ikat, pochampally" />
+                  </div>
+                </div>
+              </div>
+
               {/* ═══ Images Section (edit mode only) ═══ */}
               {modalMode === 'edit' && editId && (
                 <div className="border-t border-cream-deep pt-5">
                   <div className="flex items-center justify-between mb-3">
                     <label className="input-label !mb-0">
-                      Images * <span className={`text-xs ${currentImages.length >= 3 ? 'text-sage' : 'text-terracotta'}`}>({currentImages.length}/3 min, 6 max)</span>
+                      Images * <span className={`text-xs ${currentImages.length >= rules.minImages ? 'text-sage' : 'text-terracotta'}`}>({currentImages.length}/{rules.minImages} min, 6 max)</span>
                     </label>
                     <button
                       onClick={() => imageInputRef.current?.click()}
@@ -406,7 +626,7 @@ export default function AdminProductsPage() {
                   {/* Image grid */}
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-2">
                     {currentImages.map((url, i) => (
-                      <div key={url} className="relative group aspect-[3/4] bg-cream-warm border border-cream-deep/40 overflow-hidden">
+                      <div key={url} className="relative group aspect-[3/4] bg-cream-warm rounded-lg border border-cream-deep/40 overflow-hidden">
                         <img src={url} alt={`Image ${i + 1}`} className="w-full h-full object-cover" />
                         <button
                           onClick={() => handleImageDelete(url)}
@@ -420,7 +640,7 @@ export default function AdminProductsPage() {
                     {currentImages.length < 6 && (
                       <button
                         onClick={() => imageInputRef.current?.click()}
-                        className="aspect-[3/4] border-2 border-dashed border-cream-deep hover:border-gold flex items-center justify-center transition-colors"
+                        className="aspect-[3/4] border-2 border-dashed border-cream-deep hover:border-gold rounded-lg flex items-center justify-center transition-colors"
                       >
                         <span className="text-bark-light/40 text-2xl">+</span>
                       </button>
@@ -441,7 +661,7 @@ export default function AdminProductsPage() {
                     </button>
                   </div>
                   {currentVideo && (
-                    <div className="mt-2 flex items-center gap-3 p-2 bg-cream-warm rounded">
+                    <div className="mt-2 flex items-center gap-3 p-2 bg-cream-warm rounded-lg">
                       <video src={currentVideo} className="w-16 h-20 object-cover rounded" muted />
                       <p className="font-ui text-xs text-bark-light truncate flex-1">{currentVideo}</p>
                     </div>
@@ -450,7 +670,7 @@ export default function AdminProductsPage() {
               )}
 
               {modalMode === 'add' && (
-                <div className="p-3 bg-amber-50 border border-amber-200">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <p className="font-ui text-xs text-amber-800">Save the product first, then edit to add images (min 3) and video (min 1).</p>
                 </div>
               )}
@@ -458,28 +678,30 @@ export default function AdminProductsPage() {
 
             {/* Requirements */}
             {modalMode === 'edit' && (
-              <div className="mt-4 p-3 bg-cream-warm border border-cream-deep/40">
+              <div className="mt-4 p-3 bg-cream-warm border border-cream-deep/40 rounded-lg">
                 <p className="font-ui text-xs font-semibold text-bark mb-1">Requirements:</p>
                 <div className="flex gap-4 font-ui text-xs">
-                  <span className={currentImages.length >= 3 ? 'text-sage' : 'text-terracotta'}>
-                    {currentImages.length >= 3 ? '✓' : '✗'} Min 3 images
+                  <span className={currentImages.length >= rules.minImages ? 'text-sage' : 'text-terracotta'}>
+                    {currentImages.length >= rules.minImages ? '✓' : '✗'} Min {rules.minImages} images
                   </span>
-                  <span className={currentVideo ? 'text-sage' : 'text-terracotta'}>
-                    {currentVideo ? '✓' : '✗'} 1 video
-                  </span>
+                  {rules.minVideos > 0 && (
+                    <span className={currentVideo ? 'text-sage' : 'text-terracotta'}>
+                      {currentVideo ? '✓' : '✗'} {rules.minVideos} video
+                    </span>
+                  )}
                 </div>
               </div>
             )}
 
             {saveError && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200">
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-700">{saveError}</p>
               </div>
             )}
 
             <div className="mt-6 flex items-center justify-end gap-3">
-              <button onClick={() => setModalMode('closed')} className="btn-outline">Cancel</button>
-              <button onClick={handleSave} disabled={saving} className="btn-primary">
+              <button onClick={() => setModalMode('closed')} className="btn-outline rounded-lg">Cancel</button>
+              <button onClick={handleSave} disabled={saving} className="btn-primary rounded-lg">
                 {saving ? 'Saving...' : modalMode === 'add' ? 'Create Product' : 'Save Changes'}
               </button>
             </div>
@@ -491,9 +713,9 @@ export default function AdminProductsPage() {
       {videoProductId && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-bark/50" onClick={() => !videoUploading && setVideoProductId(null)} />
-          <div className="relative bg-cream w-full max-w-lg p-6">
+          <div className="relative bg-cream rounded-2xl w-full max-w-lg p-6 shadow-2xl">
             <h2 className="font-display text-lg font-bold text-bark mb-4">Upload Video</h2>
-            <div onClick={() => videoInputRef.current?.click()} className="border-2 border-dashed border-cream-deep hover:border-gold cursor-pointer p-6 text-center">
+            <div onClick={() => videoInputRef.current?.click()} className="border-2 border-dashed border-cream-deep hover:border-gold rounded-xl cursor-pointer p-6 text-center">
               <input ref={videoInputRef} type="file" accept="video/mp4,video/webm" onChange={(e) => {
                 const file = e.target.files?.[0]; if (!file) return;
                 if (file.type !== 'video/mp4' && file.type !== 'video/webm') { setVideoError('Only .mp4/.webm'); return; }
@@ -508,8 +730,8 @@ export default function AdminProductsPage() {
             </div>
             {videoError && <p className="mt-2 font-ui text-xs text-red-600">{videoError}</p>}
             <div className="mt-4 flex justify-end gap-3">
-              <button onClick={() => setVideoProductId(null)} className="btn-outline" disabled={videoUploading}>Cancel</button>
-              <button onClick={handleVideoUpload} className="btn-primary" disabled={!videoFile || videoUploading}>
+              <button onClick={() => setVideoProductId(null)} className="btn-outline rounded-lg" disabled={videoUploading}>Cancel</button>
+              <button onClick={handleVideoUpload} className="btn-primary rounded-lg" disabled={!videoFile || videoUploading}>
                 {videoUploading ? 'Uploading...' : 'Upload'}
               </button>
             </div>

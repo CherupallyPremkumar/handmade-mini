@@ -9,6 +9,7 @@ import CartSummary from '@/components/CartSummary';
 import { formatINR } from '@/lib/format';
 import { api } from '@/lib/api';
 import { buildRazorpayOptions, openRazorpayModal } from '@/lib/razorpay';
+import type { Address } from '@/lib/types';
 
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -40,6 +41,9 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [paymentError, setPaymentError] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [showNewForm, setShowNewForm] = useState(false);
 
   const [form, setForm] = useState<ShippingForm>({
     name: '',
@@ -55,6 +59,27 @@ export default function CheckoutPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Load saved addresses
+  useEffect(() => {
+    if (isLoggedIn) {
+      api.addresses.list().then(res => {
+        if (res.success && res.data) {
+          setSavedAddresses(res.data);
+          const defaultAddr = res.data.find((a: Address) => a.isDefault);
+          if (defaultAddr) {
+            setSelectedAddressId(defaultAddr.id);
+          } else if (res.data.length > 0) {
+            setSelectedAddressId(res.data[0].id);
+          } else {
+            setShowNewForm(true);
+          }
+        } else {
+          setShowNewForm(true);
+        }
+      }).catch(() => setShowNewForm(true));
+    }
+  }, [isLoggedIn]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -81,6 +106,42 @@ export default function CheckoutPage() {
           <div className="h-8 bg-cream-deep rounded w-48 mb-8" />
           <div className="h-96 bg-cream-deep rounded" />
         </div>
+      </div>
+    );
+  }
+
+  if (user && !user.emailVerified) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-50 flex items-center justify-center">
+          <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h1 className="font-display text-2xl font-bold text-bark mb-2">
+          Verify Your Email
+        </h1>
+        <p className="font-body text-bark-light mb-4">
+          Please verify your email address before placing an order.
+          Check your inbox for a verification link.
+        </p>
+        <button
+          onClick={async () => {
+            try {
+              await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/auth/resend-verification`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email }),
+              });
+              alert('Verification email resent!');
+            } catch {
+              alert('Failed to resend email');
+            }
+          }}
+          className="btn-primary"
+        >
+          Resend Verification Email
+        </button>
       </div>
     );
   }
@@ -141,32 +202,56 @@ export default function CheckoutPage() {
   }
 
   async function handlePayment() {
-    if (!validate()) return;
+    // Skip form validation if using saved address
+    if (!selectedAddressId && !validate()) return;
 
     setPaymentError('');
     setLoading(true);
     try {
+      // Build request body — use addressId if saved address selected
+      const orderBody: Record<string, unknown> = {
+        items: items.map(item => ({
+          productId: item.saree.id,
+          quantity: item.quantity,
+        })),
+      };
+
+      if (selectedAddressId && !showNewForm) {
+        orderBody.addressId = selectedAddressId;
+        orderBody.customerEmail = user?.email || '';
+      } else {
+        orderBody.customerName = form.name;
+        orderBody.customerPhone = form.phone.startsWith('+91') ? form.phone : `+91${form.phone}`;
+        orderBody.customerEmail = form.email;
+        orderBody.shippingAddress = {
+          line1: form.addressLine1,
+          line2: form.addressLine2 || '',
+          city: form.city,
+          state: form.state,
+          pincode: form.pincode,
+        };
+      }
+
+      // Save new address if form was filled
+      if (showNewForm && form.name && form.addressLine1 && form.city) {
+        api.addresses.create({
+          name: form.name,
+          phone: form.phone.startsWith('+91') ? form.phone : `+91${form.phone}`,
+          line1: form.addressLine1,
+          line2: form.addressLine2 || '',
+          city: form.city,
+          state: form.state,
+          pincode: form.pincode,
+          isDefault: savedAddresses.length === 0,
+        }).catch(() => {}); // Don't block checkout if save fails
+      }
+
       // 1. Create order on backend
       const API = process.env.NEXT_PUBLIC_API_URL || '';
       const res = await fetch(`${API}/api/checkout/create-order`, {
         method: 'POST', credentials: 'include' as RequestCredentials,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerName: form.name,
-          customerPhone: form.phone.startsWith('+91') ? form.phone : `+91${form.phone}`,
-          customerEmail: form.email,
-          shippingAddress: {
-            line1: form.addressLine1,
-            line2: form.addressLine2 || '',
-            city: form.city,
-            state: form.state,
-            pincode: form.pincode,
-          },
-          items: items.map(item => ({
-            productId: item.saree.id,
-            quantity: item.quantity,
-          })),
-        }),
+        body: JSON.stringify(orderBody),
       });
 
       if (!res.ok) {
@@ -254,6 +339,79 @@ export default function CheckoutPage() {
               Shipping Address
             </h2>
 
+            {/* Saved addresses */}
+            {savedAddresses.length > 0 && (
+              <div className="mb-6">
+                <div className="space-y-3">
+                  {savedAddresses.map((addr) => (
+                    <label
+                      key={addr.id}
+                      className={`block p-4 border rounded-lg cursor-pointer transition-all ${
+                        selectedAddressId === addr.id && !showNewForm
+                          ? 'border-maroon bg-maroon/5 ring-1 ring-maroon'
+                          : 'border-cream-deep/60 hover:border-bark-light/30'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="address"
+                          checked={selectedAddressId === addr.id && !showNewForm}
+                          onChange={() => {
+                            setSelectedAddressId(addr.id);
+                            setShowNewForm(false);
+                          }}
+                          className="mt-1 accent-maroon"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-ui text-sm font-medium text-bark">{addr.name}</span>
+                            {addr.label && (
+                              <span className="font-ui text-xs px-2 py-0.5 bg-cream-deep rounded-full text-bark-light">{addr.label}</span>
+                            )}
+                            {addr.isDefault && (
+                              <span className="font-ui text-xs px-2 py-0.5 bg-gold/10 text-gold rounded-full">Default</span>
+                            )}
+                          </div>
+                          <p className="font-body text-sm text-bark-light mt-1">
+                            {addr.line1}{addr.line2 ? `, ${addr.line2}` : ''}
+                          </p>
+                          <p className="font-body text-sm text-bark-light">
+                            {addr.city}, {addr.state} - {addr.pincode}
+                          </p>
+                          <p className="font-ui text-xs text-bark-light/60 mt-1">{addr.phone}</p>
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+
+                  {/* Add new address option */}
+                  <label
+                    className={`block p-4 border rounded-lg cursor-pointer transition-all ${
+                      showNewForm
+                        ? 'border-maroon bg-maroon/5 ring-1 ring-maroon'
+                        : 'border-cream-deep/60 border-dashed hover:border-bark-light/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="address"
+                        checked={showNewForm}
+                        onChange={() => {
+                          setShowNewForm(true);
+                          setSelectedAddressId(null);
+                        }}
+                        className="accent-maroon"
+                      />
+                      <span className="font-ui text-sm text-bark-light">+ Add new address</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {(showNewForm || savedAddresses.length === 0) && (
             <div className="space-y-5">
               {/* Name */}
               <div>
@@ -407,6 +565,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
             </div>
+            )}
           </div>
 
           {/* Items preview */}
