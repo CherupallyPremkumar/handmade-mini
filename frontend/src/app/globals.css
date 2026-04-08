@@ -336,3 +336,45 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ─── Policy Page Prose ─── */
+.prose-policy h2 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--bark);
+  margin: 2rem 0 0.75rem;
+}
+.prose-policy h2:first-child {
+  margin-top: 0;
+}
+.prose-policy p {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: #555;
+  line-height: 1.8;
+  margin-bottom: 0.75rem;
+}
+.prose-policy ul, .prose-policy ol {
+  margin: 0.5rem 0 1rem 1.5rem;
+}
+.prose-policy li {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: #555;
+  line-height: 1.8;
+  margin-bottom: 0.35rem;
+}
+.prose-policy ul li { list-style-type: disc; }
+.prose-policy ol li { list-style-type: decimal; }
+.prose-policy a {
+  color: var(--maroon);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-policy a:hover {
+  color: var(--gold);
+}
+.prose-policy strong {
+  color: var(--bark);
+}

@@ -99,6 +99,7 @@ export default function Header() {
                 Nool
               </Link>
               {navLink('/sarees', 'Collection', '/sarees')}
+              {mounted && isLoggedIn && navLink('/wishlist', 'Wishlist')}
               {mounted && isLoggedIn && navLink('/my-orders', 'My Orders')}
             </nav>
 

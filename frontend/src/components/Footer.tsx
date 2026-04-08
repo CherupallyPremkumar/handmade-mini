@@ -74,25 +74,29 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2.5">
               <li>
-                <Link
-                  href="/track"
-                  className="font-ui text-sm text-cream/60 hover:text-gold transition-colors"
-                >
+                <Link href="/track" className="font-ui text-sm text-cream/60 hover:text-gold transition-colors">
                   Track Order
                 </Link>
               </li>
               <li>
-                <span className="font-ui text-sm text-cream/60">
-                  Shipping & Returns
-                </span>
+                <Link href="/shipping-policy" className="font-ui text-sm text-cream/60 hover:text-gold transition-colors">
+                  Shipping Policy
+                </Link>
               </li>
               <li>
-                <span className="font-ui text-sm text-cream/60">
-                  Care Instructions
-                </span>
+                <Link href="/return-policy" className="font-ui text-sm text-cream/60 hover:text-gold transition-colors">
+                  Returns & Refunds
+                </Link>
               </li>
               <li>
-                <span className="font-ui text-sm text-cream/60">FAQs</span>
+                <Link href="/privacy-policy" className="font-ui text-sm text-cream/60 hover:text-gold transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms-and-conditions" className="font-ui text-sm text-cream/60 hover:text-gold transition-colors">
+                  Terms & Conditions
+                </Link>
               </li>
             </ul>
           </div>

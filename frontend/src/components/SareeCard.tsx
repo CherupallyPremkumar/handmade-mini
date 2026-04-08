@@ -4,6 +4,8 @@ import Link from 'next/link';
 import type { Saree } from '@/lib/types';
 import { formatINR, discountPercent, formatFabric, formatWeave } from '@/lib/format';
 import { useCartStore } from '@/lib/cart-store';
+import { useWishlistStore } from '@/lib/wishlist-store';
+import { useAuthStore } from '@/lib/auth-store';
 import { useState } from 'react';
 
 interface SareeCardProps {
@@ -12,8 +14,11 @@ interface SareeCardProps {
 
 export default function SareeCard({ saree }: SareeCardProps) {
   const addItem = useCartStore((s) => s.addItem);
+  const { toggle, isInWishlist } = useWishlistStore();
+  const { isLoggedIn } = useAuthStore();
   const [added, setAdded] = useState(false);
   const discount = discountPercent(saree.mrpInPaisa, saree.priceInPaisa);
+  const wishlisted = isInWishlist(saree.id);
 
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
@@ -66,6 +71,19 @@ export default function SareeCard({ saree }: SareeCardProps) {
               {formatFabric(saree.fabric)}
             </span>
           </div>
+
+          {/* Wishlist heart */}
+          {isLoggedIn && (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(saree.id); }}
+              className="absolute bottom-3 right-3 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center transition-all hover:scale-110"
+              title={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            >
+              <svg className={`w-4 h-4 transition-colors ${wishlisted ? 'text-red-500 fill-red-500' : 'text-bark-light'}`} fill={wishlisted ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </button>
+          )}
 
           {/* Hover overlay */}
           <div className="absolute inset-0 bg-maroon-deep/0 group-hover:bg-maroon-deep/10 transition-colors duration-500" />
