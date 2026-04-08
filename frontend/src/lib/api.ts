@@ -14,6 +14,14 @@ import { authHeaders } from './auth-store';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
 
+const REQUEST_TIMEOUT_MS = 15000;
+
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeout));
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {}
@@ -25,7 +33,7 @@ async function request<T>(
   };
 
   try {
-    const res = await fetch(url, { ...options, headers, credentials: 'include' });
+    const res = await fetchWithTimeout(url, { ...options, headers, credentials: 'include' }, REQUEST_TIMEOUT_MS);
     if (!res.ok) {
       const errorBody = await res.json().catch(() => null);
       return {
