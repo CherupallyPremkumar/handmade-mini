@@ -3,217 +3,183 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatINR } from '@/lib/format';
+import { authFetch } from '@/lib/auth-store';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
 
-interface Order {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  status: string;
-  totalAmount: number;
-  shippingAddress: { city?: string };
-  createdTime: string;
-  items: { productName: string; quantity: number }[];
-}
-
-interface Product {
-  id: string;
-  name: string;
-  stock: number;
-  sellingPrice: number;
-  images: string[];
-  videoUrl: string | null;
+interface Analytics {
+  revenueToday: number;
+  revenueThisWeek: number;
+  revenueThisMonth: number;
+  ordersToday: number;
+  totalOrders: number;
+  ordersByStatus: Record<string, number>;
+  topProducts: { name: string; quantity: number; revenue: number }[];
+  recentOrders: { orderNumber: string; customerName: string; status: string; totalAmount: number; createdTime: string }[];
+  lowStockProducts: { name: string; stock: number; sku: string }[];
 }
 
 const STATUS_DOT: Record<string, string> = {
   PENDING_PAYMENT: 'bg-yellow-400',
-  PLACED: 'bg-amber-400',
-  PAID: 'bg-green-400',
-  SHIPPED: 'bg-blue-400',
-  DELIVERED: 'bg-emerald-400',
+  PAID: 'bg-blue-500',
+  SHIPPED: 'bg-purple-500',
+  DELIVERED: 'bg-green-500',
   CANCELLED: 'bg-red-400',
 };
 
 export default function AdminDashboard() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetch(`${API}/api/admin/orders`, { credentials: 'include' as RequestCredentials }).then((r) => r.ok ? r.json() : []),
-      fetch(`${API}/api/products`).then((r) => r.ok ? r.json() : []),
-    ])
-      .then(([o, p]) => { setOrders(o); setProducts(p); })
-      .catch(() => { setOrders([]); setProducts([]); })
+    authFetch(`${API}/api/admin/analytics`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setData(d); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  const paidOrders = orders.filter((o) => ['PAID', 'SHIPPED', 'DELIVERED'].includes(o.status));
-  const totalRevenue = paidOrders.reduce((s, o) => s + o.totalAmount, 0);
-  const pendingCount = orders.filter((o) => ['PENDING_PAYMENT', 'PLACED'].includes(o.status)).length;
-  const lowStock = products.filter((p) => p.stock <= 3);
-  const noVideo = products.filter((p) => !p.videoUrl);
-  const todayOrders = orders.filter((o) => new Date(o.createdTime).toDateString() === new Date().toDateString());
-
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{[1,2,3,4].map(i => <div key={i} className="h-24 animate-pulse bg-cream-deep/50 rounded-xl" />)}</div>
-        <div className="h-64 animate-pulse bg-cream-deep/50 rounded-xl" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <div key={i} className="animate-pulse h-24 bg-cream-deep/50 rounded-xl" />)}
+        </div>
+        <div className="animate-pulse h-64 bg-cream-deep/50 rounded-xl" />
       </div>
     );
   }
 
+  if (!data) return <p className="text-bark-light">Failed to load analytics.</p>;
+
+  const chartData = data.topProducts.map(p => ({
+    name: p.name.length > 20 ? p.name.substring(0, 20) + '...' : p.name,
+    revenue: Math.round(p.revenue / 100),
+    quantity: p.quantity,
+  }));
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-bark">Dashboard</h1>
-          <p className="font-ui text-xs text-bark-light mt-0.5">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-        </div>
-        <Link href="/admin/sarees?action=add" className="btn-primary text-sm hidden sm:flex">+ Add Product</Link>
+    <div>
+      <h1 className="font-display text-2xl font-bold text-bark mb-6">Dashboard</h1>
+
+      {/* Revenue Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard label="Revenue Today" value={formatINR(data.revenueToday)} accent="gold" />
+        <StatCard label="Revenue This Week" value={formatINR(data.revenueThisWeek)} accent="sage" />
+        <StatCard label="Revenue This Month" value={formatINR(data.revenueThisMonth)} accent="maroon" />
+        <StatCard label="Orders Today" value={String(data.ordersToday)} sub={`${data.totalOrders} total`} accent="bark" />
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white rounded-xl p-4 border border-cream-deep/60 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-ui text-[10px] uppercase tracking-wider text-bark-light/60">Revenue</span>
-            <div className="w-8 h-8 rounded-lg bg-sage/10 flex items-center justify-center">
-              <svg className="w-4 h-4 text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
+      <div className="grid lg:grid-cols-2 gap-6 mb-8">
+        {/* Top Products Chart */}
+        {chartData.length > 0 && (
+          <div className="bg-white border border-cream-deep/60 p-5 rounded-xl">
+            <h3 className="font-display text-base font-semibold text-bark mb-4">Top Selling Products</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0e8d8" />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#5C4033' }} />
+                <YAxis tick={{ fontSize: 10, fill: '#5C4033' }} />
+                <Tooltip
+                  formatter={(value) => [`₹${Number(value).toLocaleString()}`, 'Revenue']}
+                  contentStyle={{ fontFamily: 'Outfit', fontSize: 12, borderRadius: 8, border: '1px solid #e8e0d4' }}
+                />
+                <Bar dataKey="revenue" fill="#8B1A1A" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-          <p className="font-display text-xl sm:text-2xl font-bold text-bark">{formatINR(totalRevenue)}</p>
-          <p className="font-ui text-[10px] text-sage mt-1">{paidOrders.length} paid orders</p>
-        </div>
+        )}
 
-        <div className="bg-white rounded-xl p-4 border border-cream-deep/60 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-ui text-[10px] uppercase tracking-wider text-bark-light/60">Orders</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-            </div>
+        {/* Orders by Status */}
+        <div className="bg-white border border-cream-deep/60 p-5 rounded-xl">
+          <h3 className="font-display text-base font-semibold text-bark mb-4">Orders by Status</h3>
+          <div className="space-y-3">
+            {Object.entries(data.ordersByStatus).map(([status, count]) => (
+              <div key={status} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${STATUS_DOT[status] || 'bg-bark-light/30'}`} />
+                  <span className="font-ui text-sm text-bark">{status.replace('_', ' ')}</span>
+                </div>
+                <span className="font-ui text-sm font-semibold text-bark">{count}</span>
+              </div>
+            ))}
           </div>
-          <p className="font-display text-xl sm:text-2xl font-bold text-bark">{orders.length}</p>
-          <p className="font-ui text-[10px] text-blue-600 mt-1">{todayOrders.length} today</p>
-        </div>
-
-        <div className="bg-white rounded-xl p-4 border border-cream-deep/60 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-ui text-[10px] uppercase tracking-wider text-bark-light/60">Products</span>
-            <div className="w-8 h-8 rounded-lg bg-maroon/10 flex items-center justify-center">
-              <svg className="w-4 h-4 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-            </div>
-          </div>
-          <p className="font-display text-xl sm:text-2xl font-bold text-bark">{products.length}</p>
-          <p className="font-ui text-[10px] text-bark-light mt-1">{noVideo.length} missing video</p>
-        </div>
-
-        <div className={`rounded-xl p-4 border shadow-sm ${pendingCount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-cream-deep/60'}`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-ui text-[10px] uppercase tracking-wider text-bark-light/60">Pending</span>
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${pendingCount > 0 ? 'bg-amber-100' : 'bg-cream-deep/30'}`}>
-              <svg className={`w-4 h-4 ${pendingCount > 0 ? 'text-amber-600' : 'text-bark-light/40'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-          </div>
-          <p className="font-display text-xl sm:text-2xl font-bold text-bark">{pendingCount}</p>
-          <p className="font-ui text-[10px] text-amber-600 mt-1">{pendingCount > 0 ? 'Needs attention' : 'All clear'}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-2 gap-6">
         {/* Recent Orders */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-cream-deep/60 shadow-sm overflow-hidden">
+        <div className="bg-white border border-cream-deep/60 rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-cream-deep/40 flex items-center justify-between">
-            <h2 className="font-display text-base font-semibold text-bark">Recent Orders</h2>
-            <Link href="/admin/orders" className="font-ui text-xs text-maroon hover:underline">View All →</Link>
+            <h3 className="font-display text-base font-semibold text-bark">Recent Orders</h3>
+            <Link href="/admin/orders" className="font-ui text-xs text-maroon hover:underline">View all</Link>
           </div>
           <div className="divide-y divide-cream-deep/30">
-            {orders.slice(0, 8).map((order) => (
-              <div key={order.id} className="px-5 py-3 flex items-center gap-3 hover:bg-cream-warm/30 transition-colors">
-                <div className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[order.status] || 'bg-gray-300'}`} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-ui text-sm font-medium text-bark truncate">{order.customerName}</p>
-                    <span className="font-ui text-[10px] text-bark-light/50 hidden sm:inline">{order.orderNumber}</span>
-                  </div>
-                  <p className="font-ui text-xs text-bark-light/60 truncate">
-                    {order.items?.map(i => i.productName).join(', ') || 'No items'}
-                  </p>
+            {data.recentOrders.map(o => (
+              <div key={o.orderNumber} className="px-5 py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-ui text-sm font-medium text-bark">{o.orderNumber}</p>
+                  <p className="font-ui text-xs text-bark-light/50">{o.customerName} &middot; {new Date(o.createdTime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="font-ui text-sm font-semibold text-bark">{formatINR(order.totalAmount)}</p>
-                  <p className="font-ui text-[10px] text-bark-light/50">{new Date(order.createdTime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+                <div className="text-right">
+                  <p className="font-ui text-sm font-semibold text-bark">{formatINR(o.totalAmount)}</p>
+                  <div className="flex items-center gap-1.5 justify-end">
+                    <div className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[o.status] || 'bg-bark-light/30'}`} />
+                    <span className="font-ui text-[10px] text-bark-light/60">{o.status.replace('_', ' ')}</span>
+                  </div>
                 </div>
               </div>
             ))}
-            {orders.length === 0 && (
-              <div className="px-5 py-12 text-center">
-                <p className="font-ui text-sm text-bark-light/50">No orders yet</p>
-              </div>
+            {data.recentOrders.length === 0 && (
+              <p className="px-5 py-6 text-center font-body text-bark-light text-sm">No orders yet</p>
             )}
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-cream-deep/60 shadow-sm p-4">
-            <h3 className="font-ui text-xs font-semibold uppercase tracking-wider text-bark-light/60 mb-3">Quick Actions</h3>
-            <div className="space-y-2">
-              <Link href="/admin/sarees?action=add" className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-cream-warm transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center"><svg className="w-4 h-4 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg></div>
-                <span className="font-ui text-sm text-bark">Add Product</span>
-              </Link>
-              <Link href="/admin/orders" className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-cream-warm transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center"><svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg></div>
-                <span className="font-ui text-sm text-bark">Manage Orders</span>
-              </Link>
-              <Link href="/admin/nool" className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-cream-warm transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-maroon/10 flex items-center justify-center"><svg className="w-4 h-4 text-maroon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></div>
-                <span className="font-ui text-sm text-bark">Upload Videos</span>
-              </Link>
-            </div>
+        {/* Low Stock Alerts */}
+        <div className="bg-white border border-cream-deep/60 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-cream-deep/40">
+            <h3 className="font-display text-base font-semibold text-bark">Low Stock Alerts</h3>
           </div>
-
-          {lowStock.length > 0 && (
-            <div className="bg-red-50 rounded-xl border border-red-200 p-4">
-              <h3 className="font-ui text-xs font-semibold uppercase tracking-wider text-red-600 mb-3">Low Stock ({lowStock.length})</h3>
-              <div className="space-y-2">
-                {lowStock.slice(0, 5).map((p) => (
-                  <div key={p.id} className="flex items-center justify-between">
-                    <p className="font-ui text-xs text-bark truncate flex-1">{p.name}</p>
-                    <span className="font-ui text-xs font-bold text-red-600 ml-2">{p.stock} left</span>
-                  </div>
-                ))}
+          <div className="divide-y divide-cream-deep/30">
+            {data.lowStockProducts.map(p => (
+              <div key={p.sku} className="px-5 py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-ui text-sm text-bark">{p.name}</p>
+                  <p className="font-mono text-[10px] text-bark-light/40">{p.sku}</p>
+                </div>
+                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                  p.stock === 0 ? 'bg-red-100 text-red-600' : 'bg-amber-50 text-amber-600'
+                }`}>
+                  {p.stock === 0 ? 'Out of stock' : `${p.stock} left`}
+                </span>
               </div>
-            </div>
-          )}
-
-          <div className="bg-white rounded-xl border border-cream-deep/60 shadow-sm p-4">
-            <h3 className="font-ui text-xs font-semibold uppercase tracking-wider text-bark-light/60 mb-3">Store Health</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-ui text-xs text-bark-light">Products with 3+ images</span>
-                <span className="font-ui text-xs font-semibold text-bark">{products.filter(p => p.images?.length >= 3).length}/{products.length}</span>
+            ))}
+            {data.lowStockProducts.length === 0 && (
+              <div className="px-5 py-6 text-center">
+                <span className="font-ui text-xs text-sage">All products well stocked</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="font-ui text-xs text-bark-light">Products with video</span>
-                <span className="font-ui text-xs font-semibold text-bark">{products.filter(p => p.videoUrl).length}/{products.length}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-ui text-xs text-bark-light">Avg. order value</span>
-                <span className="font-ui text-xs font-semibold text-bark">{paidOrders.length > 0 ? formatINR(Math.round(totalRevenue / paidOrders.length)) : '₹0'}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-ui text-xs text-bark-light">Total stock</span>
-                <span className="font-ui text-xs font-semibold text-bark">{products.reduce((s, p) => s + p.stock, 0)} units</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent: string }) {
+  const colors: Record<string, string> = {
+    gold: 'border-l-gold bg-gold/5',
+    sage: 'border-l-sage bg-sage/5',
+    maroon: 'border-l-maroon bg-maroon/5',
+    bark: 'border-l-bark bg-bark/5',
+  };
+  return (
+    <div className={`border border-cream-deep/60 border-l-4 ${colors[accent] || ''} p-4 rounded-lg`}>
+      <p className="font-ui text-xs text-bark-light/60 uppercase tracking-wider">{label}</p>
+      <p className="font-display text-xl font-bold text-bark mt-1">{value}</p>
+      {sub && <p className="font-ui text-xs text-bark-light/40 mt-0.5">{sub}</p>}
     </div>
   );
 }

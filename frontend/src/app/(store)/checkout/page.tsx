@@ -44,6 +44,11 @@ export default function CheckoutPage() {
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponApplied, setCouponApplied] = useState('');
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
 
   const [form, setForm] = useState<ShippingForm>({
     name: '',
@@ -603,11 +608,66 @@ export default function CheckoutPage() {
               {paymentError}
             </div>
           )}
+          {/* Coupon Code */}
+          <div className="bg-white border border-cream-deep/60 p-4 mb-4">
+            <h3 className="font-ui text-sm font-semibold text-bark mb-3">Have a coupon?</h3>
+            {couponApplied ? (
+              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div>
+                  <span className="font-ui text-sm font-semibold text-green-700">{couponApplied}</span>
+                  <span className="font-ui text-xs text-green-600 ml-2">-{formatINR(couponDiscount)}</span>
+                </div>
+                <button onClick={() => { setCouponApplied(''); setCouponDiscount(0); setCouponCode(''); }}
+                  className="font-ui text-xs text-red-500 hover:text-red-700">Remove</button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
+                    placeholder="Enter coupon code"
+                    className="input-field !py-2 !text-sm flex-1 font-mono tracking-wider"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!couponCode.trim()) return;
+                      setCouponLoading(true);
+                      setCouponError('');
+                      try {
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/coupons/validate`, {
+                          method: 'POST', credentials: 'include',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ code: couponCode, orderAmount: grandTotal }),
+                        });
+                        const data = await res.json();
+                        if (data.valid) {
+                          setCouponApplied(data.couponCode);
+                          setCouponDiscount(data.discountAmount);
+                        } else {
+                          setCouponError(data.error || 'Invalid coupon');
+                        }
+                      } catch { setCouponError('Failed to validate'); }
+                      finally { setCouponLoading(false); }
+                    }}
+                    disabled={couponLoading || !couponCode.trim()}
+                    className="px-4 py-2 bg-bark text-cream font-ui text-xs font-medium rounded-lg hover:bg-bark-light transition-colors disabled:opacity-50"
+                  >
+                    {couponLoading ? '...' : 'Apply'}
+                  </button>
+                </div>
+                {couponError && <p className="font-ui text-xs text-red-500 mt-2">{couponError}</p>}
+              </div>
+            )}
+          </div>
+
           <CartSummary
             showCheckoutButton
             onCheckout={handlePayment}
             checkoutLabel="Pay with Razorpay"
             loading={loading}
+            discount={couponDiscount}
           />
 
           <div className="mt-4 p-4 bg-cream-warm border border-cream-deep/40">

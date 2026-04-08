@@ -8,6 +8,7 @@ interface CartSummaryProps {
   onCheckout?: () => void;
   checkoutLabel?: string;
   loading?: boolean;
+  discount?: number;
 }
 
 export default function CartSummary({
@@ -15,6 +16,7 @@ export default function CartSummary({
   onCheckout,
   checkoutLabel = 'Proceed to Checkout',
   loading = false,
+  discount = 0,
 }: CartSummaryProps) {
   const subtotal = useCartStore((s) => s.subtotal());
   const gst = useCartStore((s) => s.gstAmount());
@@ -53,6 +55,13 @@ export default function CartSummary({
           </span>
         </div>
 
+        {discount > 0 && (
+          <div className="flex justify-between font-ui text-sm">
+            <span className="text-green-600">Coupon Discount</span>
+            <span className="font-medium text-green-600">-{formatINR(discount)}</span>
+          </div>
+        )}
+
         {freeShippingRemaining > 0 && subtotal > 0 && (
           <div className="pt-2">
             <p className="font-ui text-xs text-sage">
@@ -76,7 +85,7 @@ export default function CartSummary({
             Total
           </span>
           <span className="font-display text-2xl font-bold text-maroon">
-            {formatINR(grandTotal)}
+            {formatINR(Math.max(0, grandTotal - discount))}
           </span>
         </div>
         <p className="font-ui text-[11px] text-bark-light/60 mt-1">
