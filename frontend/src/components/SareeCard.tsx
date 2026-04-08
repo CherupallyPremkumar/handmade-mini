@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import type { Saree } from '@/lib/types';
 import { formatINR, discountPercent, formatFabric, formatWeave } from '@/lib/format';
@@ -12,7 +13,7 @@ interface SareeCardProps {
   saree: Saree;
 }
 
-export default function SareeCard({ saree }: SareeCardProps) {
+const SareeCard = React.memo(function SareeCard({ saree }: SareeCardProps) {
   const addItem = useCartStore((s) => s.addItem);
   const { toggle, isInWishlist } = useWishlistStore();
   const { isLoggedIn } = useAuthStore();
@@ -164,4 +165,6 @@ export default function SareeCard({ saree }: SareeCardProps) {
       </div>
     </Link>
   );
-}
+});
+
+export default SareeCard;
