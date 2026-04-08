@@ -90,7 +90,8 @@ export default function AdminOrdersPage() {
         : `${API}/api/admin/orders`;
       const res = await fetch(url, { credentials: "include" as RequestCredentials });
       if (res.ok) {
-        setOrders(await res.json());
+        const data = await res.json();
+        setOrders(Array.isArray(data) ? data : data.content || []);
       }
     } catch (e) {
       // Log for debugging
