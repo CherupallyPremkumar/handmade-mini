@@ -62,7 +62,7 @@ export default function HomePage() {
 
     Promise.all([
       fetch(`${API}/api/cms/banners`).then(r => r.ok ? r.json() : { banners: [], scrollSeconds: 5 }).catch(() => ({ banners: [], scrollSeconds: 5 })),
-      fetch(`${API}/api/cms/categories/home`).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${API}/api/cms/categories`).then(r => r.ok ? r.json() : []).catch(() => []),
       api.sarees.list(),
     ]).then(([bannerResp, catData, sareeRes]) => {
       setBanners(bannerResp.banners || []);
