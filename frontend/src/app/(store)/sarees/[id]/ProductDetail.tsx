@@ -38,8 +38,17 @@ export default function SareeDetailPage() {
 
   if (loading && !saree) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="font-body text-bark-light">Loading...</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="lg:grid lg:grid-cols-2 lg:gap-10">
+          <div className="animate-pulse bg-cream-deep rounded-lg aspect-[3/4] mb-6 lg:mb-0" />
+          <div className="space-y-4">
+            <div className="animate-pulse bg-cream-deep rounded h-4 w-24" />
+            <div className="animate-pulse bg-cream-deep rounded h-8 w-3/4" />
+            <div className="animate-pulse bg-cream-deep rounded h-6 w-1/3" />
+            <div className="animate-pulse bg-cream-deep rounded h-32 w-full mt-6" />
+            <div className="animate-pulse bg-cream-deep rounded h-12 w-48 mt-4" />
+          </div>
+        </div>
       </div>
     );
   }
