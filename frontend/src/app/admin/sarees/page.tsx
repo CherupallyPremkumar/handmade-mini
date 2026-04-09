@@ -23,6 +23,7 @@ interface Product {
   stock: number;
   images: string[];
   videoUrl: string | null;
+  videoStatus: 'NONE' | 'COMPRESSING' | 'READY' | 'FAILED';
   hsnCode: string;
   gstPct: number;
   isActive: boolean;
@@ -127,6 +128,25 @@ export default function AdminProductsPage() {
       openAdd();
     }
   }, [searchParams, loading]);
+
+  // Auto-resume polling when page loads and any product is still COMPRESSING
+  // (e.g., admin closed and reopened the page during a long compression job)
+  useEffect(() => {
+    const compressing = products.filter((p) => p.videoStatus === 'COMPRESSING');
+    if (compressing.length === 0) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/api/admin/products`, { credentials: 'include' as RequestCredentials });
+        if (res.ok) {
+          const fresh: Product[] = await res.json();
+          setProducts(fresh);
+          const stillCompressing = fresh.filter((p) => p.videoStatus === 'COMPRESSING');
+          if (stillCompressing.length === 0) clearInterval(interval);
+        }
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [products.map((p) => p.id + p.videoStatus).join(',')]);
 
   async function fetchProducts() {
     setLoading(true);
@@ -275,27 +295,62 @@ export default function AdminProductsPage() {
     if (!videoFile || !videoProductId) return;
     setVideoUploading(true); setVideoError('');
     try {
-      // 1. Get presigned URL
+      // 1. Get presigned URL (uploads to temp-videos/ folder)
       const presignRes = await fetch(`${API}/api/admin/media/presign-video`, {
         method: 'POST', credentials: 'include' as RequestCredentials,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId: videoProductId, contentType: videoFile.type, filename: videoFile.name }),
       });
       if (!presignRes.ok) { setVideoError('Failed to prepare upload'); return; }
-      const { uploadUrl, cdnUrl } = await presignRes.json();
+      const { uploadUrl, cdnUrl, key } = await presignRes.json();
 
       // 2. Upload directly to R2
       await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': videoFile.type }, body: videoFile });
 
-      // 3. Confirm
-      await fetch(`${API}/api/admin/media/confirm-video`, {
+      // 3. Confirm — this triggers async Lambda compression
+      const confirmRes = await fetch(`${API}/api/admin/media/confirm-video`, {
         method: 'POST', credentials: 'include' as RequestCredentials,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: videoProductId, cdnUrl }),
+        body: JSON.stringify({ productId: videoProductId, cdnUrl, key }),
       });
+
+      if (confirmRes.ok) {
+        const data = await confirmRes.json();
+        if (data.videoStatus === 'COMPRESSING') {
+          // Lambda is compressing — start polling for status
+          startPollingVideoStatus(videoProductId);
+        }
+      }
 
       setVideoProductId(null); setVideoFile(null); fetchProducts();
     } catch { setVideoError('Upload failed'); } finally { setVideoUploading(false); }
+  }
+
+  /**
+   * Poll the product every 5s until videoStatus changes from COMPRESSING
+   * to READY/FAILED. Stops polling after 15 minutes (Lambda timeout).
+   */
+  function startPollingVideoStatus(productId: string) {
+    const startTime = Date.now();
+    const MAX_POLL_MS = 15 * 60 * 1000;
+    const interval = setInterval(async () => {
+      if (Date.now() - startTime > MAX_POLL_MS) {
+        clearInterval(interval);
+        return;
+      }
+      try {
+        const res = await fetch(`${API}/api/products/${productId}`);
+        if (res.ok) {
+          const product = await res.json();
+          if (product.videoStatus !== 'COMPRESSING') {
+            clearInterval(interval);
+            fetchProducts(); // refresh list with new status
+          }
+        }
+      } catch {
+        // keep polling on transient errors
+      }
+    }, 5000);
   }
 
   const currentImages = editProduct?.images || [];
@@ -358,9 +413,25 @@ export default function AdminProductsPage() {
                         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${p.stock <= 3 ? 'bg-red-50 text-terracotta' : 'bg-sage/10 text-sage'}`}>{p.stock}</span>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${mediaOk ? 'bg-sage/10 text-sage' : 'bg-red-50 text-terracotta'}`}>
-                          {imgCount}/{rules.minImages} img &middot; {hasVideo ? '1 vid' : '0 vid'}
-                        </span>
+                        <div className="flex flex-col gap-1 items-center">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${mediaOk ? 'bg-sage/10 text-sage' : 'bg-red-50 text-terracotta'}`}>
+                            {imgCount}/{rules.minImages} img &middot; {hasVideo ? '1 vid' : '0 vid'}
+                          </span>
+                          {p.videoStatus === 'COMPRESSING' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700">
+                              <svg className="w-2.5 h-2.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                              </svg>
+                              Compressing
+                            </span>
+                          )}
+                          {p.videoStatus === 'FAILED' && (
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-50 text-terracotta">
+                              Compression failed
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
