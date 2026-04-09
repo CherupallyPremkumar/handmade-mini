@@ -180,7 +180,12 @@ export default function AdminProductsPage() {
       const res = await fetch(url, {
         method, credentials: 'include' as RequestCredentials,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, isActive: true }),
+        body: JSON.stringify({
+          ...form,
+          isActive: editProduct?.isActive ?? true,
+          images: editProduct?.images ?? [],
+          videoUrl: editProduct?.videoUrl ?? null,
+        }),
       });
       if (res.ok) { setModalMode('closed'); fetchProducts(); }
       else { const err = await res.json().catch(() => null); setSaveError(err?.error || 'Failed to save'); }
