@@ -1,9 +1,7 @@
 'use client';
 
-import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
 import { useCartStore } from '@/lib/cart-store';
 import { useAuthStore } from '@/lib/auth-store';
 import type { Saree } from '@/lib/types';
@@ -14,62 +12,16 @@ import {
   formatWeave,
 } from '@/lib/format';
 
-export default function SareeDetailPage() {
-  const params = useParams();
-  const id = typeof params.id === 'string' ? params.id : '';
-  const [saree, setSaree] = useState<Saree | null>(
-    null
-  );
-  const [loading, setLoading] = useState(true);
+interface ProductDetailProps {
+  saree: Saree;
+}
+
+export default function ProductDetail({ saree }: ProductDetailProps) {
   const addItem = useCartStore((s) => s.addItem);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
-
-  useEffect(() => {
-    if (!id) return;
-    api.sarees.getById(id).then(res => {
-      if (res.success && res.data) {
-        setSaree(res.data);
-      }
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, [id]);
-
-  if (loading && !saree) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="lg:grid lg:grid-cols-2 lg:gap-10">
-          <div className="animate-pulse bg-cream-deep rounded-lg aspect-[3/4] mb-6 lg:mb-0" />
-          <div className="space-y-4">
-            <div className="animate-pulse bg-cream-deep rounded h-4 w-24" />
-            <div className="animate-pulse bg-cream-deep rounded h-8 w-3/4" />
-            <div className="animate-pulse bg-cream-deep rounded h-6 w-1/3" />
-            <div className="animate-pulse bg-cream-deep rounded h-32 w-full mt-6" />
-            <div className="animate-pulse bg-cream-deep rounded h-12 w-48 mt-4" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!saree) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="font-display text-2xl font-bold text-bark mb-2">
-            Saree Not Found
-          </h1>
-          <p className="font-body text-bark-light mb-6">
-            The saree you&apos;re looking for doesn&apos;t exist.
-          </p>
-          <Link href="/sarees" className="btn-primary">
-            Browse Collection
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   const discount = discountPercent(saree.mrpInPaisa, saree.priceInPaisa);
 
@@ -461,10 +413,10 @@ export default function SareeDetailPage() {
       </div>
 
       {/* Reviews */}
-      <ReviewSection productId={id} />
+      <ReviewSection productId={saree.id} />
 
       {/* You May Also Like */}
-      <RelatedProducts productId={id} />
+      <RelatedProducts productId={saree.id} />
     </div>
   );
 }

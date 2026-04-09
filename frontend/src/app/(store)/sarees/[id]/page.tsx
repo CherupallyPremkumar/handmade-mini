@@ -1,92 +1,74 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import ProductDetail from './ProductDetail';
+import { getSareeById } from '@/lib/server-fetch';
 
-const API = process.env.NEXT_PUBLIC_API_URL || '';
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://dhanunjaiah.com';
 
-interface ProductData {
-  id: string;
-  name: string;
-  description: string;
-  secondaryDescription: string;
-  sellingPrice: number;
-  mrp: number;
-  stock: number;
-  images: string[];
-  fabric: string;
-  weaveType: string;
-  bodyColor: string;
-  sku: string;
-}
+export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
+  const saree = await getSareeById(id);
+  if (!saree) return { title: 'Saree Not Found' };
 
-  try {
-    const res = await fetch(`${API}/api/products/${id}`, { next: { revalidate: 3600 } });
-    if (!res.ok) return { title: 'Saree Not Found' };
+  const price = (saree.priceInPaisa / 100).toFixed(0);
+  const desc =
+    saree.description ||
+    `Handwoven ${saree.fabric || ''} ${saree.weave || ''} saree`;
 
-    const p: ProductData = await res.json();
-    const price = (p.sellingPrice / 100).toFixed(0);
-    const desc = p.description || p.secondaryDescription || `Handwoven ${p.fabric || ''} ${p.weaveType || ''} saree`;
-
-    return {
-      title: p.name,
-      description: `${desc.substring(0, 155)}. From ₹${price}. Free shipping above ₹999.`,
-      openGraph: {
-        title: p.name,
-        description: desc.substring(0, 200),
-        type: 'website',
-        url: `${SITE}/sarees/${p.id}`,
-        images: p.images?.length > 0 ? [{ url: p.images[0], width: 800, height: 1200, alt: p.name }] : [],
-      },
-    };
-  } catch {
-    return { title: 'Saree | Dhanunjaiah Handlooms' };
-  }
-}
-
-async function ProductJsonLd({ id }: { id: string }) {
-  try {
-    const res = await fetch(`${API}/api/products/${id}`, { next: { revalidate: 3600 } });
-    if (!res.ok) return null;
-    const p: ProductData = await res.json();
-
-    const jsonLd = {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: p.name,
-      description: p.description || '',
-      image: p.images || [],
-      sku: p.sku || '',
-      brand: { '@type': 'Brand', name: 'Dhanunjaiah Handlooms' },
-      offers: {
-        '@type': 'Offer',
-        price: (p.sellingPrice / 100).toFixed(2),
-        priceCurrency: 'INR',
-        availability: p.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-        url: `${SITE}/sarees/${p.id}`,
-        seller: { '@type': 'Organization', name: 'Dhanunjaiah Handlooms' },
-      },
-    };
-
-    return (
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-    );
-  } catch {
-    return null;
-  }
+  return {
+    title: saree.name,
+    description: `${desc.substring(0, 155)}. From ₹${price}. Free shipping above ₹999.`,
+    alternates: { canonical: `/sarees/${saree.id}` },
+    openGraph: {
+      title: saree.name,
+      description: desc.substring(0, 200),
+      type: 'website',
+      url: `${SITE}/sarees/${saree.id}`,
+      images:
+        saree.images?.length > 0
+          ? [{ url: saree.images[0], width: 800, height: 1200, alt: saree.name }]
+          : [],
+    },
+  };
 }
 
 export default async function SareeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const saree = await getSareeById(id);
+
+  if (!saree) {
+    notFound();
+  }
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: saree.name,
+    description: saree.description || '',
+    image: saree.images || [],
+    brand: { '@type': 'Brand', name: 'Dhanunjaiah Handlooms' },
+    offers: {
+      '@type': 'Offer',
+      price: (saree.priceInPaisa / 100).toFixed(2),
+      priceCurrency: 'INR',
+      availability:
+        saree.stock > 0
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+      url: `${SITE}/sarees/${saree.id}`,
+      seller: { '@type': 'Organization', name: 'Dhanunjaiah Handlooms' },
+    },
+  };
+
   return (
     <>
-      <ProductJsonLd id={id} />
-      <ProductDetail />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <ProductDetail saree={saree} />
     </>
   );
 }
