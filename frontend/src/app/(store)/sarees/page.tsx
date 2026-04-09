@@ -61,6 +61,11 @@ function SareesContent() {
     loadSarees();
   }, []);
 
+  const availableColors = useMemo(() => {
+    const colors = sarees.filter((s) => s.active && s.color).map((s) => s.color);
+    return [...new Set(colors)].sort();
+  }, [sarees]);
+
   const filtered = useMemo(() => {
     let result = sarees.filter((s) => s.active);
 
@@ -108,6 +113,7 @@ function SareesContent() {
               selectedWeave={weave}
               selectedColor={color}
               selectedSort={sort}
+              availableColors={availableColors}
               onFabricChange={setFabric}
               onWeaveChange={setWeave}
               onColorChange={setColor}

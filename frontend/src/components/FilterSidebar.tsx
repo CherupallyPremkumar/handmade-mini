@@ -7,6 +7,7 @@ interface FilterSidebarProps {
   selectedWeave: string;
   selectedColor: string;
   selectedSort: string;
+  availableColors?: string[];
   onFabricChange: (fabric: string) => void;
   onWeaveChange: (weave: string) => void;
   onColorChange: (color: string) => void;
@@ -28,18 +29,6 @@ const WEAVES = [
   { value: 'MERCERIZED', label: 'Mercerized' },
 ];
 
-const COLORS = [
-  { value: '', label: 'All Colors' },
-  { value: 'Magenta', label: 'Magenta' },
-  { value: 'Indigo', label: 'Indigo' },
-  { value: 'Green', label: 'Green' },
-  { value: 'Coral', label: 'Coral' },
-  { value: 'Blue', label: 'Blue' },
-  { value: 'Yellow', label: 'Yellow' },
-  { value: 'Maroon', label: 'Maroon' },
-  { value: 'Ivory', label: 'Ivory' },
-];
-
 const SORT_OPTIONS = [
   { value: '', label: 'Recommended' },
   { value: 'price_asc', label: 'Price: Low to High' },
@@ -48,22 +37,12 @@ const SORT_OPTIONS = [
   { value: 'popular', label: 'Most Popular' },
 ];
 
-const COLOR_SWATCHES: Record<string, string> = {
-  Magenta: '#c2185b',
-  Indigo: '#283593',
-  Green: '#2e7d32',
-  Coral: '#e57373',
-  Blue: '#1a237e',
-  Yellow: '#f9a825',
-  Maroon: '#8B1A1A',
-  Ivory: '#fdf5e6',
-};
-
 export default function FilterSidebar({
   selectedFabric,
   selectedWeave,
   selectedColor,
   selectedSort,
+  availableColors = [],
   onFabricChange,
   onWeaveChange,
   onColorChange,
@@ -151,31 +130,33 @@ export default function FilterSidebar({
       </div>
 
       {/* Color */}
-      <div className="mb-8">
-        <h4 className="font-ui text-xs font-semibold tracking-[0.14em] uppercase text-bark mb-3">
-          Color
-        </h4>
-        <div className="flex flex-wrap gap-2">
-          {COLORS.filter((c) => c.value).map((c) => (
-            <button
-              key={c.value}
-              onClick={() =>
-                onColorChange(selectedColor === c.value ? '' : c.value)
-              }
-              title={c.label}
-              className={`
-                w-8 h-8 rounded-full border-2 transition-all
-                ${
-                  selectedColor === c.value
-                    ? 'border-maroon scale-110 ring-2 ring-maroon/20'
-                    : 'border-cream-deep hover:border-bark-light/40'
+      {availableColors.length > 0 && (
+        <div className="mb-8">
+          <h4 className="font-ui text-xs font-semibold tracking-[0.14em] uppercase text-bark mb-3">
+            Color
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {availableColors.map((c) => (
+              <button
+                key={c}
+                onClick={() =>
+                  onColorChange(selectedColor === c ? '' : c)
                 }
-              `}
-              style={{ backgroundColor: COLOR_SWATCHES[c.value] || '#ccc' }}
-            />
-          ))}
+                className={`
+                  px-3 py-1.5 rounded-full font-ui text-xs transition-all border
+                  ${
+                    selectedColor === c
+                      ? 'bg-maroon text-cream border-maroon'
+                      : 'bg-cream-warm text-bark-light border-cream-deep hover:border-bark-light/40 hover:text-bark'
+                  }
+                `}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Clear */}
       {hasFilters && (

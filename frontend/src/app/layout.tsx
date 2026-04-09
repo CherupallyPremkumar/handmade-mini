@@ -6,6 +6,9 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://dhanunjaiah.com'),
+  alternates: {
+    canonical: '/',
+  },
   verification: {
     google: 'eXJXY1p_PvSfnxQSTnXCPjUIv6UKKRgbkriCQ7Ma8Y8',
   },
