@@ -34,6 +34,17 @@ async function request<T>(
 
   try {
     const res = await fetchWithTimeout(url, { ...options, headers, credentials: 'include' }, REQUEST_TIMEOUT_MS);
+    // Auto-logout on expired token
+    if (res.status === 401 || res.status === 403) {
+      const { useAuthStore } = await import('./auth-store');
+      const { isLoggedIn, logout } = useAuthStore.getState();
+      if (isLoggedIn && !path.includes('/auth/login') && !path.includes('/auth/register')) {
+        logout();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login?expired=true';
+        }
+      }
+    }
     if (!res.ok) {
       const errorBody = await res.json().catch(() => null);
       return {

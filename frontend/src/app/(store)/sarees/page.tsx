@@ -1,18 +1,44 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { Suspense, useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import SareeCard from '@/components/SareeCard';
 import FilterSidebar from '@/components/FilterSidebar';
 import { api } from '@/lib/api';
 import type { Saree } from '@/lib/types';
 
 export default function SareesPage() {
+  return (
+    <Suspense fallback={<SareesLoading />}>
+      <SareesContent />
+    </Suspense>
+  );
+}
+
+function SareesLoading() {
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="animate-pulse">
+            <div className="bg-cream-deep rounded-lg h-72 mb-3" />
+            <div className="bg-cream-deep rounded h-5 w-3/4 mb-2" />
+            <div className="bg-cream-deep rounded h-4 w-1/2" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SareesContent() {
+  const searchParams = useSearchParams();
   const [sarees, setSarees] = useState<Saree[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [fabric, setFabric] = useState('');
-  const [weave, setWeave] = useState('');
-  const [color, setColor] = useState('');
+  const [fabric, setFabric] = useState(searchParams.get('fabric') || '');
+  const [weave, setWeave] = useState(searchParams.get('weaveType') || searchParams.get('weave') || '');
+  const [color, setColor] = useState(searchParams.get('color') || '');
   const [sort, setSort] = useState('');
 
   const loadSarees = () => {

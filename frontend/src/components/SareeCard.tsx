@@ -30,8 +30,8 @@ const SareeCard = React.memo(function SareeCard({ saree }: SareeCardProps) {
   }
 
   return (
-    <Link href={`/sarees/${saree.id}`} className="group block">
-      <div className="card-lift bg-white overflow-hidden border border-cream-deep/60">
+    <Link href={`/sarees/${saree.id}`} className="group block h-full">
+      <div className="card-lift bg-white overflow-hidden border border-cream-deep/60 h-full flex flex-col">
         {/* Image */}
         <div className="relative aspect-[3/4] bg-cream-warm overflow-hidden">
           {saree.images && saree.images.length > 0 ? (
@@ -136,16 +136,16 @@ const SareeCard = React.memo(function SareeCard({ saree }: SareeCardProps) {
         </div>
 
         {/* Details */}
-        <div className="p-4 pb-5">
+        <div className="p-4 pb-5 flex-1 flex flex-col">
           <p className="font-ui text-[11px] font-medium tracking-[0.12em] uppercase text-gold mb-1.5">
             {formatWeave(saree.weave)}
           </p>
 
-          <h3 className="font-display text-lg font-semibold text-bark leading-snug mb-2 group-hover:text-maroon transition-colors duration-300">
+          <h3 className="font-display text-lg font-semibold text-bark leading-snug mb-2 group-hover:text-maroon transition-colors duration-300 line-clamp-2">
             {saree.name}
           </h3>
 
-          <div className="flex items-baseline gap-2.5">
+          <div className="flex items-baseline gap-2.5 mt-auto">
             <span className="font-ui text-lg font-semibold text-maroon">
               {formatINR(saree.priceInPaisa)}
             </span>
@@ -157,7 +157,7 @@ const SareeCard = React.memo(function SareeCard({ saree }: SareeCardProps) {
           </div>
 
           {saree.stock <= 3 && saree.stock > 0 && (
-            <p className="mt-2 font-ui text-xs text-terracotta font-medium">
+            <p className="mt-1 font-ui text-xs text-terracotta font-medium">
               Only {saree.stock} left
             </p>
           )}
