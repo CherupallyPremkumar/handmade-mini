@@ -83,15 +83,27 @@ export default function CartPage() {
               key={item.saree.id}
               className="bg-white border border-cream-deep/60 p-4 sm:p-5 flex gap-4 sm:gap-6"
             >
-              {/* Image placeholder */}
-              <div className="w-24 h-32 sm:w-28 sm:h-36 bg-cream-warm flex items-center justify-center shrink-0 border border-cream-deep/40">
-                <div
-                  className="w-12 h-12 rounded-full opacity-20"
-                  style={{
-                    background: `conic-gradient(from 0deg, var(--maroon), var(--gold), var(--maroon))`,
-                  }}
-                />
-              </div>
+              {/* Product image */}
+              <Link
+                href={`/sarees/${item.saree.id}`}
+                className="w-24 h-32 sm:w-28 sm:h-36 bg-cream-warm flex items-center justify-center shrink-0 border border-cream-deep/40 overflow-hidden"
+              >
+                {item.saree.images && item.saree.images.length > 0 ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.saree.images[0]}
+                    alt={item.saree.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="w-12 h-12 rounded-full opacity-20"
+                    style={{
+                      background: `conic-gradient(from 0deg, var(--maroon), var(--gold), var(--maroon))`,
+                    }}
+                  />
+                )}
+              </Link>
 
               {/* Details */}
               <div className="flex-1 min-w-0">
