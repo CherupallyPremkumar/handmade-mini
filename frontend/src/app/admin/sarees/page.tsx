@@ -241,7 +241,7 @@ export default function AdminProductsPage() {
         const { uploadUrl, cdnUrl } = await presignRes.json();
 
         // 2. Upload directly to R2 (browser → R2, bypasses backend)
-        await fetch(uploadUrl, { method: 'PUT', credentials: 'include' as RequestCredentials, headers: { 'Content-Type': file.type }, body: file });
+        await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
 
         // 3. Confirm upload to backend
         await fetch(`${API}/api/admin/media/confirm-image`, {
@@ -280,7 +280,7 @@ export default function AdminProductsPage() {
       const { uploadUrl, cdnUrl } = await presignRes.json();
 
       // 2. Upload directly to R2
-      await fetch(uploadUrl, { method: 'PUT', credentials: 'include' as RequestCredentials, headers: { 'Content-Type': videoFile.type }, body: videoFile });
+      await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': videoFile.type }, body: videoFile });
 
       // 3. Confirm
       await fetch(`${API}/api/admin/media/confirm-video`, {
