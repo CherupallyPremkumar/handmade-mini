@@ -6,6 +6,9 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://dhanunjaiah.com'),
+  verification: {
+    google: 'eXJXY1p_PvSfnxQSTnXCPjUIv6UKKRgbkriCQ7Ma8Y8',
+  },
   title: {
     default: 'Dhanunjaiah Handlooms \u2014 Authentic Ikat Sarees',
     template: '%s | Dhanunjaiah Handlooms',
